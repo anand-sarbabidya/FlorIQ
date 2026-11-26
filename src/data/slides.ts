@@ -13,7 +13,7 @@ export type SlideKind =
   | "team"
   | "close";
 
-export type SlideCard = { title: string; body: string };
+export type SlideCard = { title: string; body: string; image?: string };
 
 export type Slide = {
   id: string;
@@ -22,42 +22,42 @@ export type Slide = {
   title: string;
   subtitle?: string;
   note?: string;
-  /** Spoken narration for auto-present mode */
   script: string;
   cards?: SlideCard[];
   stats?: { value: string; label: string }[];
-  steps?: { index: string; title: string; body: string }[];
+  steps?: { index: string; title: string; body: string; image?: string }[];
   tiers?: { name: string; price: string; featured?: boolean; items: string[] }[];
   crops?: { name: string; image: string }[];
   contacts?: { label: string; value: string }[];
   image?: string;
   imageAlt?: string;
+  /** Optional looping muted video for the title slide */
+  video?: string;
+  /** Shape-based process — only on sparse slides */
+  flow?: string[];
+  shares?: { label: string; pct: number; body: string }[];
 };
 
-export const PPT_PATH = "/FloraGuard_Pitch_Deck.pptx";
-export const PPT_FILENAME = "FloraGuard_Pitch_Deck.pptx";
+export const PPT_PATH = "/FlorIQ_Pitch_Deck.pptx";
+export const PPT_FILENAME = "FlorIQ_Pitch_Deck.pptx";
 
-/**
- * Pitch flow aligned to the final Canva deck (FlorIQ / FloraGuard),
- * with market opportunity and business model called out clearly.
- */
 export const slides: Slide[] = [
   {
     id: "title",
     kind: "title",
     eyebrow: "CIS Tech · Pitch Deck",
-    title: "FloraGuard",
+    title: "FlorIQ",
     subtitle: "Grow Calm. Grow Green. Indoors.",
-    note: "FloraGuard makes reliable indoor growing simple through connected hardware, guided growing, and recurring plant-care products.",
-    image: "/assets/product.png",
-    imageAlt: "FloraGuard indoor growing unit",
+    note: "FlorIQ makes reliable indoor growing simple through connected hardware, guided growing, and recurring plant-care products.",
+    video: "/assets/videos/hero.mp4",
+    imageAlt: "FlorIQ indoor growing unit",
     contacts: [
       { label: "Founder", value: "Md. Ibrahim Shopon" },
       { label: "Email", value: "hello@cistechltd.com" },
       { label: "Phone", value: "+880 1761-807610" },
     ],
     script:
-      "Welcome. This is FloraGuard from CIS Tech. We make reliable indoor growing simple through connected hardware, guided growing, and recurring plant-care products. Grow calm. Grow green. Indoors.",
+      "Welcome. This is FlorIQ from CIS Tech. We make reliable indoor growing simple through connected hardware, guided growing, and recurring plant-care products. Grow calm. Grow green. Indoors.",
   },
   {
     id: "problem",
@@ -66,6 +66,9 @@ export const slides: Slide[] = [
     title: "Fresh herbs are inconvenient, inconsistent, and wasteful.",
     subtitle:
       "Most indoor-growing products still require knowledge, time, and maintenance — so plants fail before they feed anyone.",
+    video: "/assets/videos/render.webm",
+    imageAlt: "FlorIQ growing system render",
+    flow: ["Buy herbs", "Missed care", "Plant stress", "Waste & replace"],
     cards: [
       {
         title: "Water imbalance",
@@ -90,12 +93,12 @@ export const slides: Slide[] = [
   {
     id: "solution",
     kind: "solution",
-    eyebrow: "03 · Introducing FloraGuard",
+    eyebrow: "03 · Introducing FlorIQ",
     title: "Smart indoor plant care through automation and real-time monitoring.",
     subtitle:
       "A compact growing unit with guided care — so beginners and kitchens get predictable harvests.",
-    image: "/assets/product.png",
-    imageAlt: "FloraGuard product",
+    video: "/assets/videos/plant-system.webm",
+    imageAlt: "FlorIQ plant system",
     cards: [
       {
         title: "Real-time plant health monitoring",
@@ -123,7 +126,7 @@ export const slides: Slide[] = [
       },
     ],
     script:
-      "Introducing FloraGuard. Smart indoor plant care through automation and real-time monitoring. The system watches plant health, soil moisture and water level, controls the grow light automatically, and tracks temperature, humidity, and CO₂. It uses a modular multi-tray design, with a path to remote dashboard monitoring.",
+      "Introducing FlorIQ. Smart indoor plant care through automation and real-time monitoring. The system watches plant health, soil moisture and water level, controls the grow light automatically, and tracks temperature, humidity, and CO₂. It uses a modular multi-tray design, with a path to remote dashboard monitoring.",
   },
   {
     id: "steps",
@@ -131,14 +134,39 @@ export const slides: Slide[] = [
     eyebrow: "04 · How It Works",
     title: "From pod to harvest.",
     steps: [
-      { index: "01", title: "Plant selected", body: "Insert the pod and choose the crop profile." },
-      { index: "02", title: "Real-time monitoring", body: "Sensors track moisture, climate, and tank level." },
-      { index: "03", title: "Smart control", body: "Light and care guidance adjust automatically." },
-      { index: "04", title: "User notifications", body: "Clear alerts when the plant needs attention." },
-      { index: "05", title: "Flourishing harvest", body: "Healthier growth — ready for the kitchen." },
+      {
+        index: "01",
+        title: "Plant selected",
+        body: "Insert the pod and choose the crop profile.",
+        image: "/assets/how/01-plant-selected.png",
+      },
+      {
+        index: "02",
+        title: "Real-time monitoring",
+        body: "Sensors track moisture, climate, and tank level.",
+        image: "/assets/how/02-monitoring.jpg",
+      },
+      {
+        index: "03",
+        title: "Smart control",
+        body: "Light and care guidance adjust automatically.",
+        image: "/assets/how/03-smart-control.jpg",
+      },
+      {
+        index: "04",
+        title: "User notifications",
+        body: "Clear alerts when the plant needs attention.",
+        image: "/assets/how/04-notifications.png",
+      },
+      {
+        index: "05",
+        title: "Flourishing harvest",
+        body: "Healthier growth — ready for the kitchen.",
+        image: "/assets/how/05-harvest.png",
+      },
     ],
     script:
-      "Here is how FloraGuard works. Stage one: select the plant and insert the pod. Stage two: real-time monitoring begins. Stage three: smart control balances light and care. Stage four: the owner gets clear notifications. The goal achieved is a flourishing harvest.",
+      "Here is how FlorIQ works. Stage one: select the plant and insert the pod. Stage two: real-time monitoring begins. Stage three: smart control balances light and care. Stage four: the owner gets clear notifications. The goal achieved is a flourishing harvest.",
   },
   {
     id: "market",
@@ -147,7 +175,7 @@ export const slides: Slide[] = [
     title: "How big is the opportunity?",
     subtitle:
       "Urbanization and limited growing space are accelerating demand for smart indoor farming. Our modular pods scale from homes to commercial facilities.",
-    note: "Sources: Grand View Research; GII / QYResearch; National Gardening Association. Published market context — not FloraGuard results.",
+    note: "Sources: Grand View Research; GII / QYResearch; National Gardening Association. Published market context — not FlorIQ results.",
     stats: [
       {
         value: "$2.4B",
@@ -204,6 +232,7 @@ export const slides: Slide[] = [
     title: "Hardware first — then recurring care.",
     subtitle:
       "A diversified revenue stream combining hardware sales with recurring plant-care products and subscriptions.",
+    flow: ["Hardware", "Pods & nutrients", "Care plan", "B2B scale"],
     cards: [
       {
         title: "Hardware sale",
@@ -239,21 +268,25 @@ export const slides: Slide[] = [
     kind: "audience",
     eyebrow: "08 · Who We Serve",
     title: "Start where a sale can happen first.",
-    cards: [
+    shares: [
       {
-        title: "Urban houseplant hobbyists · 45%",
+        label: "Urban houseplant hobbyists",
+        pct: 45,
         body: "Homes and apartments — recommended first channel via direct online sales.",
       },
       {
-        title: "Commercial offices & co-working · 30%",
+        label: "Commercial offices & co-working",
+        pct: 30,
         body: "Shared kitchens, desks, and workplace greenery.",
       },
       {
-        title: "Frequent travelers · 15%",
+        label: "Frequent travelers",
+        pct: 15,
         body: "Owners who need guided care when they are away.",
       },
       {
-        title: "Boutique nurseries & plant shops · 10%",
+        label: "Boutique nurseries & plant shops",
+        pct: 10,
         body: "Retail partners and specialty plant experiences.",
       },
     ],
@@ -267,7 +300,7 @@ export const slides: Slide[] = [
     eyebrow: "09 · Competitive Advantage",
     title: "Designed to feel finished — and stay connected.",
     subtitle:
-      "These are the choices built into FloraGuard — not a lab comparison against other products.",
+      "These are the choices built into FlorIQ — not a lab comparison against other products.",
     cards: [
       {
         title: "Premium design",
@@ -295,7 +328,7 @@ export const slides: Slide[] = [
       },
     ],
     script:
-      "Our advantage is design and connected care. FloraGuard is meant to look finished on a counter, set up with a simple pod and crop profile, support local pilot crops, guide care with sensors and alerts, keep recurring consumables in the model, and scale into multi-pod commercial monitoring on the premium tier.",
+      "Our advantage is design and connected care. FlorIQ is meant to look finished on a counter, set up with a simple pod and crop profile, support local pilot crops, guide care with sensors and alerts, keep recurring consumables in the model, and scale into multi-pod commercial monitoring on the premium tier.",
   },
   {
     id: "validation",
@@ -348,13 +381,49 @@ export const slides: Slide[] = [
     eyebrow: "12 · The Team",
     title: "Rooted in passion and expertise.",
     cards: [
-      { title: "Md. Ibrahim Shopon", body: "Founder" },
-      { title: "William Francis Gomes", body: "Co-Founder" },
-      { title: "Imran H. Shakil", body: "Co-Founder" },
-      { title: "Sarwar An Noor", body: "IoT Developer" },
+      {
+        title: "Md. Ibrahim Shopon",
+        body: "Founder",
+        image: "/assets/team/md-ibrahim-shopon.png",
+      },
+      {
+        title: "William Francis Gomes",
+        body: "Co-Founder",
+        image: "/assets/team/william-francis-gomes.png",
+      },
+      {
+        title: "Imran H. Shakil",
+        body: "Co-Founder",
+        image: "/assets/team/imran-h-shakil.png",
+      },
+      {
+        title: "Sarwar An Noor",
+        body: "IoT Developer",
+        image: "/assets/team/sarwar-an-noor.png",
+      },
+      {
+        title: "Sanjoy Kumar Saha",
+        body: "Software Developer",
+        image: "/assets/team/sanjoy-kumar-saha.png?v=15",
+      },
+      {
+        title: "Anand Sarbabidya",
+        body: "Software Developer",
+        image: "/assets/team/anand-sarbabidya.png?v=15",
+      },
+      {
+        title: "Syed Mohtasib Mashruk",
+        body: "Mobile Application Developer",
+        image: "/assets/team/syed-mohtasib-mashruk.png?v=15",
+      },
+      {
+        title: "Sadhan Kirtania",
+        body: "Animator & 3D Designer",
+        image: "/assets/team/sadhan-kirtania.png?v=15",
+      },
     ],
     script:
-      "The team. Md Ibrahim Shopon, Founder. William Francis Gomes and Imran H Shakil, Co-Founders. Sarwar An Noor, IoT Developer. Rooted in passion and expertise at CIS Tech.",
+      "The team. Md Ibrahim Shopon, Founder. William Francis Gomes and Imran H Shakil, Co-Founders. Sarwar An Noor, IoT Developer. Sanjoy Kumar Saha and Anand Sarbabidya, Software Developers. Syed Mohtasib Mashruk, Mobile Application Developer. Sadhan Kirtania, Animator and 3D Designer. Rooted in passion and expertise at CIS Tech.",
   },
   {
     id: "close",
@@ -362,13 +431,15 @@ export const slides: Slide[] = [
     eyebrow: "Questions & Discussion",
     title: "Let’s grow together.",
     subtitle:
-      "Thank you for exploring the future of autonomous plant care with FloraGuard. Let’s make green living a daily reality.",
+      "Thank you for exploring the future of autonomous plant care with FlorIQ. Let’s make green living a daily reality.",
+    video: "/assets/videos/hero.mp4",
+    imageAlt: "FlorIQ indoor growing unit",
     contacts: [
       { label: "Web", value: "cistechltd.com" },
       { label: "Email", value: "hello@cistechltd.com" },
       { label: "Phone", value: "+880 1761-807610" },
     ],
     script:
-      "Let’s grow together and make green living a daily reality. Thank you for exploring FloraGuard. Visit cistechltd.com, email hello at cistechltd.com, or call plus eight eight zero one seven six one eight zero seven six one zero. We welcome your questions.",
+      "Let’s grow together and make green living a daily reality. Thank you for exploring FlorIQ. Visit cistechltd.com, email hello at cistechltd.com, or call plus eight eight zero one seven six one eight zero seven six one zero. We welcome your questions.",
   },
 ];

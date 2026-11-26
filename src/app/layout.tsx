@@ -16,9 +16,9 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "FloraGuard Pitch Deck | CIS Tech",
+  title: "FlorIQ Pitch Deck | CIS Tech",
   description:
-    "Interactive FloraGuard pitch slider — present in the browser or download the PPT.",
+    "Interactive FlorIQ pitch slider — present in the browser or download the PPT.",
 };
 
 export default function RootLayout({

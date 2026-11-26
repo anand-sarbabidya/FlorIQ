@@ -6,7 +6,7 @@ export default function DownloadBar() {
       <div className="download-bar__inner">
         <div>
           <p className="download-bar__eyebrow">Take it with you</p>
-          <h2 className="download-bar__title">Download the Canva pitch deck</h2>
+          <h2 className="download-bar__title">Download the FlorIQ pitch deck</h2>
           <p className="download-bar__copy">
             Final Canva PPTX for meetings and offline presenting — plus the live slider above for Auto or Manual delivery.
           </p>
