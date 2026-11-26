@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  serverExternalPackages: ["msedge-tts"],
+  serverExternalPackages: ["msedge-tts", "pptxgenjs"],
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   turbopack: {
     rules: {

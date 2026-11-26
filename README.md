@@ -52,4 +52,4 @@ npm run build:static
 - Full pitch slider (keyboard, swipe, dots)
 - Auto AI voice (Edge Jenny by default, speechSynthesis fallback) / Manual presenter mode
 - Deep links via `?s=3`
-- **Download PPT** button at the bottom
+- **Download PPT** button — generates a PPTX from the same `src/data/slides.ts` content as the live slider (`/api/pptx`; static builds use a refreshed `public/` file)

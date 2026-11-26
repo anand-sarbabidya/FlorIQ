@@ -38,7 +38,11 @@ export type Slide = {
   shares?: { label: string; pct: number; body: string }[];
 };
 
-export const PPT_PATH = "/FlorIQ_Pitch_Deck.pptx";
+/** Live generator (Node / Vercel). Static export falls back to public file. */
+export const PPT_PATH =
+  process.env.NEXT_PUBLIC_STATIC_EXPORT === "1"
+    ? "/FlorIQ_Pitch_Deck.pptx"
+    : "/api/pptx";
 export const PPT_FILENAME = "FlorIQ_Pitch_Deck.pptx";
 
 export const slides: Slide[] = [

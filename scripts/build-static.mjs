@@ -32,10 +32,25 @@ try {
     stashed = true;
   }
 
+  // Refresh public PPTX from live slides before export (no /api/pptx in static out/).
+  const pptxResult = spawnSync("node", ["scripts/generate-pptx.mjs"], {
+    cwd: root,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
+  if ((pptxResult.status ?? 1) !== 0) {
+    process.exitCode = pptxResult.status ?? 1;
+    return;
+  }
+
   const result = spawnSync("npx", ["next", "build"], {
     cwd: root,
     stdio: "inherit",
-    env: { ...process.env, ENABLE_STATIC_EXPORT: "1" },
+    env: {
+      ...process.env,
+      ENABLE_STATIC_EXPORT: "1",
+      NEXT_PUBLIC_STATIC_EXPORT: "1",
+    },
     shell: process.platform === "win32",
   });
 
