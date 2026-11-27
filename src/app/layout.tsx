@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { Cormorant_Garamond, Manrope, Noto_Naskh_Arabic } from "next/font/google";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -15,6 +15,13 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
+const notoNaskh = Noto_Naskh_Arabic({
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-arabic",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "FlorIQ Pitch Deck | CIS Tech",
   description:
@@ -27,7 +34,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${manrope.variable} ${cormorant.variable} h-full`}>
+    <html
+      lang="en"
+      className={`${manrope.variable} ${cormorant.variable} ${notoNaskh.variable} h-full`}
+    >
       <body className={`${manrope.className} min-h-full antialiased`}>{children}</body>
     </html>
   );

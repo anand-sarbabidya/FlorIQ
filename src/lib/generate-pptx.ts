@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import PptxGenJS from "pptxgenjs";
 import { slides, type Slide } from "@/data/slides";
 
@@ -19,8 +21,83 @@ const W = 13.333;
 const H = 7.5;
 const M = 0.55;
 
-function isDark(slide: Slide) {
-  return slide.kind === "title" || slide.kind === "close";
+/** Site video URLs → PowerPoint-safe MP4 + poster under public/assets/videos/for-pptx */
+const VIDEO_FOR_PPTX: Record<string, { mp4: string; poster: string }> = {
+  "/assets/videos/hero.mp4": {
+    mp4: "/assets/videos/for-pptx/hero.mp4",
+    poster: "/assets/videos/for-pptx/hero-poster.jpg",
+  },
+  "/assets/videos/render.webm": {
+    mp4: "/assets/videos/for-pptx/render.mp4",
+    poster: "/assets/videos/for-pptx/render-poster.jpg",
+  },
+  "/assets/videos/plant-system.webm": {
+    mp4: "/assets/videos/for-pptx/plant-system.mp4",
+    poster: "/assets/videos/for-pptx/plant-system-poster.jpg",
+  },
+};
+
+function publicFile(url?: string | null): string | null {
+  if (!url) return null;
+  const clean = url.split("?")[0].replace(/^\//, "");
+  const abs = path.join(process.cwd(), "public", clean);
+  return existsSync(abs) ? abs : null;
+}
+
+function addLocalImage(
+  slide: PptxGenJS.Slide,
+  url: string | undefined,
+  opts: PptxGenJS.ImageProps,
+): boolean {
+  const file = publicFile(url);
+  if (!file) return false;
+  slide.addImage({ ...opts, path: file });
+  return true;
+}
+
+function fileAsDataUri(absPath: string): string {
+  const ext = path.extname(absPath).toLowerCase().replace(".", "") || "jpeg";
+  const mime = ext === "jpg" ? "jpeg" : ext;
+  const b64 = readFileSync(absPath).toString("base64");
+  return `data:image/${mime};base64,${b64}`;
+}
+
+function addLocalVideo(
+  slide: PptxGenJS.Slide,
+  videoUrl: string | undefined,
+  opts: { x: number; y: number; w: number; h: number },
+): boolean {
+  if (!videoUrl) return false;
+  const key = videoUrl.split("?")[0];
+  const mapped = VIDEO_FOR_PPTX[key];
+  const mp4 = publicFile(mapped?.mp4 ?? (key.endsWith(".mp4") ? key : null));
+  const coverPath = publicFile(mapped?.poster);
+  if (mp4) {
+    slide.addMedia({
+      type: "video",
+      path: mp4,
+      cover: coverPath ? fileAsDataUri(coverPath) : undefined,
+      x: opts.x,
+      y: opts.y,
+      w: opts.w,
+      h: opts.h,
+    });
+    return true;
+  }
+  // Fallback: poster / product still
+  if (
+    mapped?.poster &&
+    addLocalImage(slide, mapped.poster, {
+      ...opts,
+      sizing: { type: "cover", w: opts.w, h: opts.h },
+    })
+  ) {
+    return true;
+  }
+  return addLocalImage(slide, "/assets/product.png", {
+    ...opts,
+    sizing: { type: "cover", w: opts.w, h: opts.h },
+  });
 }
 
 function addBackground(pptx: PptxGenJS, slide: PptxGenJS.Slide, dark: boolean) {
@@ -32,7 +109,6 @@ function addBackground(pptx: PptxGenJS, slide: PptxGenJS.Slide, dark: boolean) {
     fill: { color: dark ? C.forestDeep : C.cream },
     line: { color: dark ? C.forestDeep : C.cream },
   });
-  // Accent bar
   slide.addShape(pptx.ShapeType.rect, {
     x: 0,
     y: 0,
@@ -61,12 +137,12 @@ function addTitle(
   slide: PptxGenJS.Slide,
   text: string,
   dark: boolean,
-  opts: { y?: number; h?: number; fontSize?: number } = {},
+  opts: { y?: number; h?: number; fontSize?: number; w?: number } = {},
 ) {
   slide.addText(text, {
     x: M,
     y: opts.y ?? 0.7,
-    w: W - M * 2,
+    w: opts.w ?? W - M * 2,
     h: opts.h ?? 0.85,
     fontSize: opts.fontSize ?? 32,
     fontFace: "Calibri",
@@ -81,12 +157,13 @@ function addSubtitle(
   text: string | undefined,
   dark: boolean,
   y: number,
+  w = W - M * 2,
 ) {
   if (!text) return;
   slide.addText(text, {
     x: M,
     y,
-    w: W - M * 2,
+    w,
     h: 0.55,
     fontSize: 14,
     fontFace: "Calibri",
@@ -116,9 +193,10 @@ function cardGrid(
   startY: number,
   cols: number,
   darkCards = true,
+  opts: { maxW?: number } = {},
 ) {
   const gap = 0.18;
-  const usable = W - M * 2;
+  const usable = (opts.maxW ?? W - M * 2);
   const cardW = (usable - gap * (cols - 1)) / cols;
   const rows = Math.ceil(cards.length / cols);
   const availableH = H - startY - 0.7;
@@ -163,9 +241,9 @@ function cardGrid(
   });
 }
 
-function addFlow(pptx: PptxGenJS, slide: PptxGenJS.Slide, items: string[], y: number) {
+function addFlow(pptx: PptxGenJS, slide: PptxGenJS.Slide, items: string[], y: number, maxW?: number) {
   const gap = 0.12;
-  const usable = W - M * 2;
+  const usable = maxW ?? W - M * 2;
   const n = items.length;
   const arrowW = 0.22;
   const boxW = (usable - arrowW * (n - 1) - gap * (n - 1) * 2) / n;
@@ -210,14 +288,74 @@ function addFlow(pptx: PptxGenJS, slide: PptxGenJS.Slide, items: string[], y: nu
   });
 }
 
+function buildDuaSlide(pptx: PptxGenJS, data: Slide) {
+  const s = pptx.addSlide();
+  addBackground(pptx, s, true);
+  addEyebrow(s, data.eyebrow || "00 · Opening", true, 0.55);
+
+  const arabic = (data.arabicLines ?? []).join("\n");
+  if (arabic) {
+    s.addText(arabic, {
+      x: M,
+      y: 0.95,
+      w: W - M * 2,
+      h: 3.35,
+      fontSize: 20,
+      fontFace: "Arial",
+      color: C.ivory,
+      align: "center",
+      valign: "middle",
+    });
+  }
+
+  if (data.translation) {
+    s.addText(`"${data.translation}"`, {
+      x: M + 0.8,
+      y: 4.4,
+      w: W - M * 2 - 1.6,
+      h: 1.55,
+      fontSize: 12,
+      fontFace: "Calibri",
+      color: "A8B5AD",
+      align: "center",
+      valign: "top",
+    });
+  }
+
+  if (data.citation) {
+    s.addText(data.citation, {
+      x: M,
+      y: 6.05,
+      w: W - M * 2,
+      h: 0.3,
+      fontSize: 11,
+      fontFace: "Calibri",
+      color: C.gold,
+      align: "center",
+    });
+  }
+
+  s.addText("The Holy Qur’an", {
+    x: M,
+    y: 6.45,
+    w: W - M * 2,
+    h: 0.28,
+    fontSize: 10,
+    fontFace: "Calibri",
+    color: "7A8A82",
+    align: "center",
+  });
+}
+
 function buildTitleSlide(pptx: PptxGenJS, data: Slide) {
   const s = pptx.addSlide();
   addBackground(pptx, s, true);
+  const copyW = 7.2;
   addEyebrow(s, data.eyebrow, true, 1.4);
   s.addText(data.title, {
     x: M,
     y: 1.85,
-    w: 7.5,
+    w: copyW,
     h: 1.1,
     fontSize: 54,
     fontFace: "Calibri",
@@ -228,7 +366,7 @@ function buildTitleSlide(pptx: PptxGenJS, data: Slide) {
     s.addText(data.subtitle, {
       x: M,
       y: 3.05,
-      w: 7.5,
+      w: copyW,
       h: 0.45,
       fontSize: 20,
       fontFace: "Calibri",
@@ -239,7 +377,7 @@ function buildTitleSlide(pptx: PptxGenJS, data: Slide) {
     s.addText(data.note, {
       x: M,
       y: 3.65,
-      w: 7.8,
+      w: copyW,
       h: 0.9,
       fontSize: 14,
       fontFace: "Calibri",
@@ -250,51 +388,52 @@ function buildTitleSlide(pptx: PptxGenJS, data: Slide) {
     s.addText(`${c.label}:  ${c.value}`, {
       x: M,
       y: 5.5 + i * 0.35,
-      w: 7,
+      w: copyW,
       h: 0.32,
       fontSize: 13,
       fontFace: "Calibri",
       color: C.ivory,
     });
   });
-  // Decorative panel
-  s.addShape(pptx.ShapeType.rect, {
-    x: 9.2,
-    y: 0,
-    w: 4.133,
-    h: H,
+
+  const media = { x: 8.35, y: 0.55, w: 4.5, h: 6.4 };
+  s.addShape(pptx.ShapeType.roundRect, {
+    x: media.x - 0.08,
+    y: media.y - 0.08,
+    w: media.w + 0.16,
+    h: media.h + 0.16,
     fill: { color: C.forest },
     line: { color: C.forest },
+    rectRadius: 0.1,
   });
-  s.addText("CIS Tech", {
-    x: 9.5,
-    y: 3.2,
-    w: 3.5,
-    h: 0.4,
-    fontSize: 16,
-    fontFace: "Calibri",
-    color: C.gold,
-    align: "center",
-    bold: true,
-  });
-  s.addText("Indoor Growing", {
-    x: 9.5,
-    y: 3.6,
-    w: 3.5,
-    h: 0.35,
-    fontSize: 12,
-    fontFace: "Calibri",
-    color: "B8C9BE",
-    align: "center",
-  });
+  if (!addLocalVideo(s, data.video, media)) {
+    addLocalImage(s, data.image ?? "/assets/product.png", {
+      ...media,
+      sizing: { type: "cover", w: media.w, h: media.h },
+    });
+  }
 }
 
 function buildProblemSlide(pptx: PptxGenJS, data: Slide) {
   const s = pptx.addSlide();
   addBackground(pptx, s, false);
+  const hasMedia = Boolean(data.video || data.image);
+  const copyW = hasMedia ? 7.6 : W - M * 2;
+
   addEyebrow(s, data.eyebrow, false);
-  addTitle(s, data.title, false, { y: 0.65, h: 0.75, fontSize: 26 });
-  addSubtitle(s, data.subtitle, false, 1.45);
+  addTitle(s, data.title, false, { y: 0.65, h: 0.75, fontSize: 24, w: copyW });
+  addSubtitle(s, data.subtitle, false, 1.45, copyW);
+
+  if (hasMedia) {
+    const media = { x: 8.55, y: 0.45, w: 4.3, h: 2.55 };
+    if (!addLocalVideo(s, data.video, media)) {
+      addLocalImage(s, data.image, {
+        ...media,
+        sizing: { type: "cover", w: media.w, h: media.h },
+      });
+    }
+  }
+
   if (data.flow) addFlow(pptx, s, data.flow, 2.15);
   if (data.cards) cardGrid(pptx, s, data.cards, data.flow ? 2.9 : 2.2, 2);
 }
@@ -302,10 +441,28 @@ function buildProblemSlide(pptx: PptxGenJS, data: Slide) {
 function buildSolutionSlide(pptx: PptxGenJS, data: Slide) {
   const s = pptx.addSlide();
   addBackground(pptx, s, false);
+  const hasMedia = Boolean(data.video || data.image);
+  const copyW = hasMedia ? 7.4 : W - M * 2;
+
   addEyebrow(s, data.eyebrow, false);
-  addTitle(s, data.title, false, { y: 0.65, h: 0.7, fontSize: 24 });
-  addSubtitle(s, data.subtitle, false, 1.4);
-  if (data.cards) cardGrid(pptx, s, data.cards, 2.1, 3);
+  addTitle(s, data.title, false, { y: 0.65, h: 0.7, fontSize: 22, w: copyW });
+  addSubtitle(s, data.subtitle, false, 1.4, copyW);
+
+  if (data.cards) {
+    cardGrid(pptx, s, data.cards.slice(0, 6), 2.1, hasMedia ? 2 : 3, true, {
+      maxW: copyW,
+    });
+  }
+
+  if (hasMedia) {
+    const media = { x: 8.45, y: 1.5, w: 4.4, h: 5.2 };
+    if (!addLocalVideo(s, data.video, media)) {
+      addLocalImage(s, data.image, {
+        ...media,
+        sizing: { type: "cover", w: media.w, h: media.h },
+      });
+    }
+  }
 }
 
 function buildStepsSlide(pptx: PptxGenJS, data: Slide) {
@@ -320,6 +477,7 @@ function buildStepsSlide(pptx: PptxGenJS, data: Slide) {
   const cardW = (usable - gap * (n - 1)) / n;
   const cardH = 4.6;
   const y = 1.5;
+  const imgH = 1.55;
 
   steps.forEach((step, i) => {
     const x = M + i * (cardW + gap);
@@ -332,22 +490,35 @@ function buildStepsSlide(pptx: PptxGenJS, data: Slide) {
       line: { color: C.cardDark },
       rectRadius: 0.08,
     });
+
+    let textTop = y + 0.2;
+    if (step.image) {
+      addLocalImage(s, step.image, {
+        x: x + 0.12,
+        y: y + 0.14,
+        w: cardW - 0.24,
+        h: imgH,
+        sizing: { type: "cover", w: cardW - 0.24, h: imgH },
+      });
+      textTop = y + 0.14 + imgH + 0.12;
+    }
+
     s.addText(step.index, {
       x: x + 0.12,
-      y: y + 0.2,
+      y: textTop,
       w: cardW - 0.24,
-      h: 0.4,
-      fontSize: 18,
+      h: 0.32,
+      fontSize: 14,
       fontFace: "Calibri",
       color: C.gold,
       bold: true,
     });
     s.addText(step.title, {
       x: x + 0.12,
-      y: y + 0.7,
+      y: textTop + 0.32,
       w: cardW - 0.24,
-      h: 0.7,
-      fontSize: 14,
+      h: 0.55,
+      fontSize: 13,
       fontFace: "Calibri",
       color: C.ivory,
       bold: true,
@@ -355,10 +526,10 @@ function buildStepsSlide(pptx: PptxGenJS, data: Slide) {
     });
     s.addText(step.body, {
       x: x + 0.12,
-      y: y + 1.5,
+      y: textTop + 0.9,
       w: cardW - 0.24,
-      h: 2.5,
-      fontSize: 12,
+      h: y + cardH - (textTop + 0.9) - 0.15,
+      fontSize: 11,
       fontFace: "Calibri",
       color: "D5DED8",
       valign: "top",
@@ -621,19 +792,28 @@ function buildValidationSlide(pptx: PptxGenJS, data: Slide) {
     const x = M + i * (cw + gap);
     s.addShape(pptx.ShapeType.roundRect, {
       x,
-      y: 2.2,
+      y: 2.0,
       w: cw,
-      h: 3.5,
+      h: 3.9,
       fill: { color: C.cardDark },
       line: { color: C.cardDark },
       rectRadius: 0.1,
     });
+    const imgSize = Math.min(cw - 0.5, 2.2);
+    const imgX = x + (cw - imgSize) / 2;
+    addLocalImage(s, crop.image, {
+      x: imgX,
+      y: 2.25,
+      w: imgSize,
+      h: imgSize,
+      sizing: { type: "contain", w: imgSize, h: imgSize },
+    });
     s.addText(crop.name, {
       x: x + 0.2,
-      y: 3.5,
+      y: 2.25 + imgSize + 0.2,
       w: cw - 0.4,
-      h: 0.6,
-      fontSize: 20,
+      h: 0.45,
+      fontSize: 18,
       fontFace: "Calibri",
       color: C.ivory,
       bold: true,
@@ -641,9 +821,9 @@ function buildValidationSlide(pptx: PptxGenJS, data: Slide) {
     });
     s.addText("Pilot crop", {
       x: x + 0.2,
-      y: 4.2,
+      y: 2.25 + imgSize + 0.65,
       w: cw - 0.4,
-      h: 0.35,
+      h: 0.3,
       fontSize: 12,
       fontFace: "Calibri",
       color: C.gold,
@@ -657,15 +837,16 @@ function buildTeamSlide(pptx: PptxGenJS, data: Slide) {
   const s = pptx.addSlide();
   addBackground(pptx, s, false);
   addEyebrow(s, data.eyebrow, false);
-  addTitle(s, data.title, false, { y: 0.65, h: 0.55, fontSize: 28 });
+  addTitle(s, data.title, false, { y: 0.55, h: 0.45, fontSize: 26 });
 
   const members = data.cards ?? [];
   const cols = 4;
-  const gap = 0.18;
+  const gap = 0.16;
   const usable = W - M * 2;
   const cardW = (usable - gap * (cols - 1)) / cols;
-  const cardH = 1.7;
-  const startY = 1.5;
+  const cardH = 2.55;
+  const startY = 1.2;
+  const photo = 1.15;
 
   members.forEach((m, i) => {
     const col = i % cols;
@@ -681,24 +862,46 @@ function buildTeamSlide(pptx: PptxGenJS, data: Slide) {
       line: { color: C.cardDark },
       rectRadius: 0.08,
     });
+
+    const photoX = x + (cardW - photo) / 2;
+    if (m.image) {
+      addLocalImage(s, m.image, {
+        x: photoX,
+        y: y + 0.18,
+        w: photo,
+        h: photo,
+        rounding: true,
+        sizing: { type: "cover", w: photo, h: photo },
+      });
+    } else {
+      s.addShape(pptx.ShapeType.ellipse, {
+        x: photoX,
+        y: y + 0.18,
+        w: photo,
+        h: photo,
+        fill: { color: C.forestMid },
+        line: { color: C.forestMid },
+      });
+    }
+
     s.addText(m.title, {
-      x: x + 0.15,
-      y: y + 0.4,
-      w: cardW - 0.3,
+      x: x + 0.1,
+      y: y + 1.45,
+      w: cardW - 0.2,
       h: 0.55,
-      fontSize: 13,
+      fontSize: 11,
       fontFace: "Calibri",
       color: C.ivory,
       bold: true,
       align: "center",
-      valign: "middle",
+      valign: "top",
     });
     s.addText(m.body, {
-      x: x + 0.15,
-      y: y + 1.0,
-      w: cardW - 0.3,
+      x: x + 0.1,
+      y: y + 2.05,
+      w: cardW - 0.2,
       h: 0.35,
-      fontSize: 11,
+      fontSize: 10,
       fontFace: "Calibri",
       color: C.gold,
       align: "center",
@@ -709,61 +912,90 @@ function buildTeamSlide(pptx: PptxGenJS, data: Slide) {
 function buildCloseSlide(pptx: PptxGenJS, data: Slide) {
   const s = pptx.addSlide();
   addBackground(pptx, s, true);
-  addEyebrow(s, data.eyebrow, true, 1.8);
+
+  const hasMedia = Boolean(data.video || data.image);
+  const copyW = hasMedia ? 7.2 : W - M * 2;
+
+  addEyebrow(s, data.eyebrow, true, hasMedia ? 1.5 : 1.8);
   s.addText(data.title, {
     x: M,
-    y: 2.3,
-    w: W - M * 2,
+    y: hasMedia ? 2.1 : 2.3,
+    w: copyW,
     h: 0.9,
-    fontSize: 40,
+    fontSize: hasMedia ? 34 : 40,
     fontFace: "Calibri",
     color: C.ivory,
     bold: true,
-    align: "center",
+    align: hasMedia ? "left" : "center",
   });
   if (data.subtitle) {
     s.addText(data.subtitle, {
-      x: M + 1.5,
-      y: 3.4,
-      w: W - M * 2 - 3,
+      x: M,
+      y: hasMedia ? 3.15 : 3.4,
+      w: copyW,
       h: 0.8,
       fontSize: 15,
       fontFace: "Calibri",
       color: "B8C9BE",
-      align: "center",
+      align: hasMedia ? "left" : "center",
     });
   }
   data.contacts?.forEach((c, i) => {
-    const total = data.contacts!.length;
-    const blockW = 3.5;
-    const totalW = total * blockW;
-    const startX = (W - totalW) / 2;
-    s.addText(c.label, {
-      x: startX + i * blockW,
-      y: 4.8,
-      w: blockW,
-      h: 0.3,
-      fontSize: 11,
-      fontFace: "Calibri",
-      color: C.gold,
-      align: "center",
-      bold: true,
-    });
-    s.addText(c.value, {
-      x: startX + i * blockW,
-      y: 5.15,
-      w: blockW,
-      h: 0.35,
-      fontSize: 13,
-      fontFace: "Calibri",
-      color: C.ivory,
-      align: "center",
-    });
+    if (hasMedia) {
+      s.addText(`${c.label}:  ${c.value}`, {
+        x: M,
+        y: 4.4 + i * 0.4,
+        w: copyW,
+        h: 0.35,
+        fontSize: 13,
+        fontFace: "Calibri",
+        color: C.ivory,
+      });
+    } else {
+      const total = data.contacts!.length;
+      const blockW = 3.5;
+      const totalW = total * blockW;
+      const startX = (W - totalW) / 2;
+      s.addText(c.label, {
+        x: startX + i * blockW,
+        y: 4.8,
+        w: blockW,
+        h: 0.3,
+        fontSize: 11,
+        fontFace: "Calibri",
+        color: C.gold,
+        align: "center",
+        bold: true,
+      });
+      s.addText(c.value, {
+        x: startX + i * blockW,
+        y: 5.15,
+        w: blockW,
+        h: 0.35,
+        fontSize: 13,
+        fontFace: "Calibri",
+        color: C.ivory,
+        align: "center",
+      });
+    }
   });
+
+  if (hasMedia) {
+    const media = { x: 8.35, y: 0.55, w: 4.5, h: 6.4 };
+    if (!addLocalVideo(s, data.video, media)) {
+      addLocalImage(s, data.image ?? "/assets/product.png", {
+        ...media,
+        sizing: { type: "cover", w: media.w, h: media.h },
+      });
+    }
+  }
 }
 
 function addSlideByKind(pptx: PptxGenJS, data: Slide) {
   switch (data.kind) {
+    case "dua":
+      buildDuaSlide(pptx, data);
+      break;
     case "title":
       buildTitleSlide(pptx, data);
       break;

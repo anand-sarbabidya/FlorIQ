@@ -1,0 +1,25 @@
+LINIQO LICENSE
+
+Copyright (c) Abdullah Noman. All rights reserved.
+
+When you buy a Liniqo plan, you get a non-exclusive, worldwide, non-transferable licence to use the illustrations in personal and commercial projects, including websites, apps, software products, presentations, marketing, print and social media. No attribution is required.
+
+Who the licence covers
+- Personal: one person, for your own products and projects.
+- Pro: one person, including unlimited client projects.
+- Lifetime: up to 5 people in the same team or company, including client projects.
+
+You may modify the illustrations (recolour, resize, crop, animate, combine).
+
+You may not:
+- resell, redistribute, sublicense or share the files as they are, alone or in a pack, including in other illustration libraries, icon packs, marketplaces or templates where the illustrations are the main value;
+- share your license key or download access with people your plan does not cover;
+- claim the illustrations as your own original work in a way that suggests you drew the library;
+- use the illustrations to train a machine learning model that generates or imitates illustration libraries.
+
+Using Liniqo through an AI tool (for example the Liniqo MCP server in Claude, Cursor or Lovable) to place illustrations in your own projects is allowed under the same terms.
+
+Copyright and all other rights in the illustrations stay with us. Files you have downloaded stay licensed to you, even after your updates period ends.
+
+Full terms: https://liniqo.com/terms
+Contact: workwithnoman@gmail.com

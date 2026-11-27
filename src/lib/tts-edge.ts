@@ -1,5 +1,10 @@
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
-import { DEFAULT_EDGE_VOICE } from "@/lib/tts";
+import {
+  ARABIC_EDGE_VOICE,
+  ARABIC_EDGE_VOICE_FALLBACK,
+  DEFAULT_EDGE_VOICE,
+  resolveEdgeVoice,
+} from "@/lib/tts";
 
 /** Escape text for inclusion inside Edge SSML. */
 export function escapeSsmlText(text: string): string {
@@ -11,46 +16,72 @@ export function escapeSsmlText(text: string): string {
     .replace(/'/g, "&apos;");
 }
 
+function isArabicVoice(voice: string): boolean {
+  return /^ar[-_]/i.test(voice);
+}
+
 /**
  * Synthesize MP3 via Microsoft Edge Read Aloud (free neural voices).
- * Slightly faster/higher prosody for an upbeat presenter feel.
+ * English presenter voices get a slightly brighter prosody; Arabic
+ * recitation voices stay calm and slightly slower.
  */
 export async function synthesizeEdgeMp3(
   text: string,
   voice = process.env.TTS_VOICE?.trim() || DEFAULT_EDGE_VOICE,
 ): Promise<Buffer> {
-  const tts = new MsEdgeTTS({
-    connectionTimeoutMs: 15_000,
-    synthesisTimeoutMs: 90_000,
-  });
+  const primary = resolveEdgeVoice(voice);
+  const candidates = isArabicVoice(primary)
+    ? [
+        primary,
+        primary === ARABIC_EDGE_VOICE
+          ? ARABIC_EDGE_VOICE_FALLBACK
+          : ARABIC_EDGE_VOICE,
+      ]
+    : [primary];
 
-  try {
-    await tts.setMetadata(
-      voice,
-      OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3,
-    );
+  let lastError: unknown;
 
-    const { audioStream } = tts.toStream(escapeSsmlText(text), {
-      rate: "+8%",
-      pitch: "+3Hz",
+  for (const candidate of candidates) {
+    const tts = new MsEdgeTTS({
+      connectionTimeoutMs: 15_000,
+      synthesisTimeoutMs: 90_000,
     });
 
-    const chunks: Buffer[] = [];
-    await new Promise<void>((resolve, reject) => {
-      audioStream.on("data", (chunk: Buffer) => {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    try {
+      await tts.setMetadata(
+        candidate,
+        OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3,
+      );
+
+      const arabic = isArabicVoice(candidate);
+      const { audioStream } = tts.toStream(escapeSsmlText(text), {
+        rate: arabic ? "-8%" : "+8%",
+        pitch: arabic ? "0Hz" : "+3Hz",
       });
-      audioStream.on("error", reject);
-      audioStream.on("end", () => resolve());
-      audioStream.on("close", () => resolve());
-    });
 
-    const buffer = Buffer.concat(chunks);
-    if (buffer.length === 0) {
-      throw new Error("Edge TTS returned empty audio");
+      const chunks: Buffer[] = [];
+      await new Promise<void>((resolve, reject) => {
+        audioStream.on("data", (chunk: Buffer) => {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        });
+        audioStream.on("error", reject);
+        audioStream.on("end", () => resolve());
+        audioStream.on("close", () => resolve());
+      });
+
+      const buffer = Buffer.concat(chunks);
+      if (buffer.length === 0) {
+        throw new Error("Edge TTS returned empty audio");
+      }
+      return buffer;
+    } catch (err) {
+      lastError = err;
+    } finally {
+      tts.close();
     }
-    return buffer;
-  } finally {
-    tts.close();
   }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Edge TTS request failed");
 }

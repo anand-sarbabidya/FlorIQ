@@ -1,4 +1,5 @@
 export type SlideKind =
+  | "dua"
   | "title"
   | "problem"
   | "solution"
@@ -23,6 +24,14 @@ export type Slide = {
   subtitle?: string;
   note?: string;
   script: string;
+  /** Edge TTS voice override (e.g. Arabic neural for the opening dua). */
+  voice?: string;
+  /** Arabic verse lines for the opening dua slide */
+  arabicLines?: string[];
+  /** English translation shown under Arabic on the dua slide */
+  translation?: string;
+  /** Citation / attribution under the translation */
+  citation?: string;
   cards?: SlideCard[];
   stats?: { value: string; label: string }[];
   steps?: { index: string; title: string; body: string; image?: string }[];
@@ -31,7 +40,7 @@ export type Slide = {
   contacts?: { label: string; value: string }[];
   image?: string;
   imageAlt?: string;
-  /** Optional looping muted video for the title slide */
+  /** Optional looping muted video (title, problem, solution, close) */
   video?: string;
   /** Shape-based process — only on sparse slides */
   flow?: string[];
@@ -46,6 +55,28 @@ export const PPT_PATH =
 export const PPT_FILENAME = "FlorIQ_Pitch_Deck.pptx";
 
 export const slides: Slide[] = [
+  {
+    id: "dua",
+    kind: "dua",
+    eyebrow: "00 · Opening",
+    title: "Surah Al-Fātiḥah",
+    arabicLines: [
+      "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+      "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+      "الرَّحْمَٰنِ الرَّحِيمِ",
+      "مَالِكِ يَوْمِ الدِّينِ",
+      "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
+      "اهدِنَا الصِّرَاطَ الْمُسْتَقِيمَ",
+      "صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ",
+    ],
+    translation:
+      "In the name of Allah, the Entirely Merciful, the Especially Merciful. [All] praise is [due] to Allah, Lord of the worlds — the Entirely Merciful, the Especially Merciful, Sovereign of the Day of Recompense. It is You we worship and You we ask for help. Guide us to the straight path — the path of those upon whom You have bestowed favor, not of those who have earned [Your] anger or of those who are astray.",
+    citation: "— Surah Al-Fātiḥah 1:1–7",
+    /** Arabic neural voice for Auto · AI Voice recitation */
+    voice: "ar-SA-HamedNeural",
+    script:
+      "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ. الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ. الرَّحْمَٰنِ الرَّحِيمِ. مَالِكِ يَوْمِ الدِّينِ. إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ. اهدِنَا الصِّرَاطَ الْمُسْتَقِيمَ. صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ.",
+  },
   {
     id: "title",
     kind: "title",

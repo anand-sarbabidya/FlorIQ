@@ -5,8 +5,38 @@
  */
 export const DEFAULT_EDGE_VOICE = "en-US-JennyNeural";
 
+/** Opening dua slide — Saudi Arabic male neural for Qur'anic recitation feel. */
+export const ARABIC_EDGE_VOICE = "ar-SA-HamedNeural";
+
+/** Fallback Arabic neural if Hamed is unavailable. */
+export const ARABIC_EDGE_VOICE_FALLBACK = "ar-SA-ZariyahNeural";
+
+/** Voices the TTS API will accept (prevents arbitrary voice injection). */
+export const ALLOWED_EDGE_VOICES = [
+  DEFAULT_EDGE_VOICE,
+  ARABIC_EDGE_VOICE,
+  ARABIC_EDGE_VOICE_FALLBACK,
+  "en-US-AriaNeural",
+  "en-GB-SoniaNeural",
+] as const;
+
+export type AllowedEdgeVoice = (typeof ALLOWED_EDGE_VOICES)[number];
+
+export function isAllowedEdgeVoice(voice: string): voice is AllowedEdgeVoice {
+  return (ALLOWED_EDGE_VOICES as readonly string[]).includes(voice);
+}
+
+export function resolveEdgeVoice(requested?: string | null): string {
+  const trimmed = requested?.trim();
+  if (trimmed && isAllowedEdgeVoice(trimmed)) return trimmed;
+  return process.env.TTS_VOICE?.trim() || DEFAULT_EDGE_VOICE;
+}
+
 /** Pronunciation tweaks applied before any TTS engine speaks. */
 export function prepareSpokenScript(script: string): string {
+  // Leave Arabic (and other non-Latin) scripts untouched.
+  if (/[\u0600-\u06FF]/.test(script)) return script.trim();
+
   return script
     .replace(/FlorIQ/gi, "Florick")
     .replace(/\bcis\b/gi, "C I S")
@@ -29,8 +59,12 @@ export function getTtsEndpoints(): string[] {
 export async function fetchTtsAudio(
   text: string,
   signal?: AbortSignal,
+  voice?: string,
 ): Promise<Blob | null> {
-  const body = JSON.stringify({ text });
+  const body = JSON.stringify({
+    text,
+    ...(voice ? { voice } : {}),
+  });
   for (const endpoint of getTtsEndpoints()) {
     try {
       const res = await fetch(endpoint, {

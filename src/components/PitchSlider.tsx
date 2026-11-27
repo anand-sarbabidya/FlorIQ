@@ -2,6 +2,17 @@
 
 import { slides, type Slide } from "@/data/slides";
 import { usePitchPresenter } from "@/hooks/usePitchPresenter";
+import AutomationGears from "@/components/liniqo/AutomationGears";
+import GrowthChart from "@/components/liniqo/GrowthChart";
+import { LiniqoSlideProvider } from "@/components/liniqo/LiniqoSlideContext";
+import LiniqoStill from "@/components/liniqo/LiniqoStill";
+import NotificationBell from "@/components/liniqo/NotificationBell";
+import OfficePlant from "@/components/liniqo/OfficePlant";
+import PlantGrowthScroll from "@/components/liniqo/PlantGrowthScroll";
+import PricingTiersLive from "@/components/liniqo/PricingTiers";
+import QuranBook from "@/components/liniqo/QuranBook";
+import SmartHomeScroll from "@/components/liniqo/SmartHomeScroll";
+import TeamAvatars from "@/components/liniqo/TeamAvatars";
 import Image from "next/image";
 import {
   useCallback,
@@ -15,6 +26,38 @@ import {
 
 const TOTAL = slides.length;
 
+function narrateClass(highlightId: string | null, id: string) {
+  return highlightId === id ? " is-narrating" : "";
+}
+
+/** Icon + copy row — replaces card grids with Liniqo stills */
+function FeatureLine({
+  icon,
+  title,
+  body,
+  i = 0,
+  highlightId = null,
+}: {
+  icon: string;
+  title: string;
+  body: string;
+  i?: number;
+  highlightId?: string | null;
+}) {
+  return (
+    <li
+      className={`feature-line${narrateClass(highlightId, `card-${i}`)}`}
+      style={{ "--i": i } as CSSProperties}
+    >
+      <LiniqoStill id={icon} alt="" className="feature-line__icon" />
+      <div className="feature-line__copy">
+        <h3>{title}</h3>
+        <p>{body}</p>
+      </div>
+    </li>
+  );
+}
+
 function clampIndex(index: number) {
   return Math.max(0, Math.min(TOTAL - 1, index));
 }
@@ -23,9 +66,11 @@ function clampIndex(index: number) {
 function ShapeFlow({
   items,
   tone = "neutral",
+  highlightId = null,
 }: {
   items: string[];
   tone?: "neutral" | "decline";
+  highlightId?: string | null;
 }) {
   return (
     <div className={`journey ${tone === "decline" ? "journey--decline" : ""}`} aria-label="Process flow">
@@ -36,7 +81,7 @@ function ShapeFlow({
           return (
             <li
               key={item}
-              className={`journey__step ${isLast && tone === "decline" ? "journey__step--end" : ""}`}
+              className={`journey__step${isLast && tone === "decline" ? " journey__step--end" : ""}${narrateClass(highlightId, `flow-${i}`)}`}
               style={{ "--i": i } as CSSProperties}
             >
               <span className="journey__orb">
@@ -53,19 +98,75 @@ function ShapeFlow({
 }
 
 function SlideShell({ slide, children }: { slide: Slide; children: ReactNode }) {
-  const isDark = slide.kind === "title" || slide.kind === "close";
+  const isDark =
+    slide.kind === "dua" || slide.kind === "title" || slide.kind === "close";
   return (
     <article
       className={`slide ${isDark ? "slide--dark" : "slide--light"}`}
       data-kind={slide.kind}
+      data-theme={isDark ? "dark" : "light"}
     >
       <div className="slide__inner">{children}</div>
     </article>
   );
 }
 
-function SlideBody({ slide }: { slide: Slide }) {
+function SlideBody({
+  slide,
+  revealDua,
+  highlightId = null,
+}: {
+  slide: Slide;
+  /** Surah Al-Fātiḥah after fullscreen; welcome message before. */
+  revealDua: boolean;
+  highlightId?: string | null;
+}) {
   switch (slide.kind) {
+    case "dua":
+      return (
+        <div className="layout layout--dua">
+          {revealDua ? (
+            <>
+              <p className="eyebrow dua__eyebrow">{slide.eyebrow}</p>
+              <div className="dua" dir="rtl" lang="ar">
+                {(slide.arabicLines ?? []).map((line) => (
+                  <p key={line} className="dua__arabic">
+                    {line}
+                  </p>
+                ))}
+              </div>
+              {slide.translation ? (
+                <blockquote className="dua__translation" lang="en">
+                  <p>“{slide.translation}”</p>
+                  {slide.citation ? (
+                    <cite className="dua__citation">{slide.citation}</cite>
+                  ) : null}
+                </blockquote>
+              ) : null}
+              <div className="dua__book">
+                <div className="lq-figure lq-figure--live lq-figure--outline lq-figure--dua-book">
+                  <QuranBook
+                    className="lq-figure__live"
+                    bg="transparent"
+                    line="#52b788"
+                    accent="#d4bc7a"
+                  />
+                </div>
+                <p className="dua__book-caption">The Holy Qur’an</p>
+              </div>
+            </>
+          ) : (
+            <div className="dua-welcome" aria-live="polite">
+              <p className="dua-welcome__bismillah" dir="rtl" lang="ar">
+                بِسْمِ اللَّهِ
+              </p>
+              <p className="dua-welcome__title">Welcome</p>
+              <p className="dua-welcome__hint">Enter full screen to begin</p>
+            </div>
+          )}
+        </div>
+      );
+
     case "title":
       return (
         <div className="layout layout--split">
@@ -109,277 +210,327 @@ function SlideBody({ slide }: { slide: Slide }) {
         </div>
       );
 
-    case "problem":
+    case "problem": {
+      const problemIcons = [
+        "watering-can",
+        "weather-station-mast",
+        "energy-saving-bulb-meter",
+        "sprinkler-timer-controller",
+      ];
       return (
-        <div className="layout layout--problem">
-          <header className="problem-head">
-            <div className="problem-head__copy">
+        <div className="layout layout--problem layout--illustrated">
+          <div className="illus-split">
+            <div className="illus-split__copy">
               <p className="eyebrow">{slide.eyebrow}</p>
               <h2 className="title title--problem">{slide.title}</h2>
-              {slide.subtitle ? <p className="lede problem-head__lede">{slide.subtitle}</p> : null}
+              {slide.subtitle ? <p className="lede">{slide.subtitle}</p> : null}
+              {slide.flow ? (
+                <ShapeFlow items={slide.flow} tone="decline" highlightId={highlightId} />
+              ) : null}
+              <ul className="feature-lines">
+                {slide.cards?.map((card, i) => (
+                  <FeatureLine
+                    key={card.title}
+                    icon={problemIcons[i] ?? "watering-can"}
+                    title={card.title}
+                    body={card.body}
+                    i={i}
+                    highlightId={highlightId}
+                  />
+                ))}
+              </ul>
             </div>
-            {slide.video ? (
-              <div className="problem-head__visual">
-                <video
-                  className="problem-video"
-                  src={slide.video}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  aria-label={slide.imageAlt || slide.title}
-                />
-              </div>
-            ) : null}
-          </header>
-          {slide.flow ? <ShapeFlow items={slide.flow} tone="decline" /> : null}
-          <div className="grid grid--2 problem-grid">
-            {slide.cards?.map((card, i) => (
-              <div key={card.title} className="problem-card" style={{ "--i": i } as CSSProperties}>
-                <span className="problem-card__index" aria-hidden="true">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <div className="problem-card__body">
-                  <h3>{card.title}</h3>
-                  <p>{card.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-
-    case "solution":
-      return (
-        <div className="layout layout--split layout--solution">
-          <div className="copy">
-            <p className="eyebrow">{slide.eyebrow}</p>
-            <h2 className="title">{slide.title}</h2>
-            {slide.subtitle ? <p className="lede">{slide.subtitle}</p> : null}
-            <div className="solution-stack">
-              {slide.cards?.slice(0, 3).map((card, i) => (
-                <div
-                  key={card.title}
-                  className="feature-card"
-                  style={{ "--i": i } as CSSProperties}
-                >
-                  <span className="feature-card__index" aria-hidden="true">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <div className="feature-card__body">
-                    <h3>{card.title}</h3>
-                    <p>{card.body}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="copy">
-            <div className="visual visual--panel visual--contained">
+            <div className="illus-split__art">
               {slide.video ? (
-                <video
-                  className="visual__video"
-                  src={slide.video}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  aria-label={slide.imageAlt || slide.title}
-                />
-              ) : slide.image ? (
-                <Image
-                  src={slide.image}
-                  alt={slide.imageAlt || slide.title}
-                  width={900}
-                  height={506}
-                  className="visual__img"
-                />
+                <div className="visual visual--hero visual--contained visual--art-video">
+                  <video
+                    className="visual__video"
+                    src={slide.video}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    aria-label={slide.imageAlt || slide.title}
+                  />
+                </div>
               ) : null}
             </div>
-            <div className="solution-stack solution-stack--right">
-              {slide.cards?.slice(3).map((card, i) => (
-                <div
-                  key={card.title}
-                  className="feature-card"
-                  style={{ "--i": i + 3 } as CSSProperties}
-                >
-                  <span className="feature-card__index" aria-hidden="true">
-                    {String(i + 4).padStart(2, "0")}
-                  </span>
-                  <div className="feature-card__body">
-                    <h3>{card.title}</h3>
-                    <p>{card.body}</p>
-                  </div>
+          </div>
+        </div>
+      );
+    }
+
+    case "solution": {
+      const solutionIcons = [
+        "soil-sensor-probe",
+        "drip-irrigation-line",
+        "seedling-tray-rack",
+        "weather-station-mast",
+        "vertical-farm-racks",
+        "widget-grid-layout",
+      ];
+      return (
+        <div className="layout layout--solution layout--illustrated">
+          <div className="illus-split">
+            <div className="illus-split__copy">
+              <p className="eyebrow">{slide.eyebrow}</p>
+              <h2 className="title">{slide.title}</h2>
+              {slide.subtitle ? <p className="lede">{slide.subtitle}</p> : null}
+              <ul className="feature-lines feature-lines--compact">
+                {slide.cards?.map((card, i) => (
+                  <FeatureLine
+                    key={card.title}
+                    icon={solutionIcons[i] ?? "soil-sensor-probe"}
+                    title={card.title}
+                    body={card.body}
+                    i={i}
+                    highlightId={highlightId}
+                  />
+                ))}
+              </ul>
+            </div>
+            <div className="illus-split__art">
+              {slide.video ? (
+                <div className="visual visual--hero visual--contained visual--art-video">
+                  <video
+                    className="visual__video"
+                    src={slide.video}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    aria-label={slide.imageAlt || slide.title}
+                  />
                 </div>
-              ))}
+              ) : null}
             </div>
           </div>
         </div>
       );
+    }
 
-    case "roadmap":
+    case "roadmap": {
+      const roadmapIcons = [
+        "seedling-tray-rack",
+        "kpi-tile-wall",
+        "smart-meter-box",
+        "smart-thermostat-wall",
+      ];
       return (
-        <div className="layout layout--roadmap">
-          <p className="eyebrow">{slide.eyebrow}</p>
-          <h2 className="title">{slide.title}</h2>
-          <div className="roadmap-grid">
-            {slide.steps?.map((step, i) => (
-              <div
-                key={step.index + step.title}
-                className="feature-card feature-card--step roadmap-card"
-                style={{ "--i": i } as CSSProperties}
-              >
-                <span className="feature-card__index">{step.index}</span>
-                <div className="feature-card__body">
-                  <h3>{step.title}</h3>
-                  <p>{step.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-
-    case "steps":
-      return (
-        <div className="layout">
-          <p className="eyebrow">{slide.eyebrow}</p>
-          <h2 className="title">{slide.title}</h2>
-          {slide.subtitle ? <p className="lede">{slide.subtitle}</p> : null}
-          <div
-            className={`steps ${
-              (slide.steps?.length ?? 0) === 4 ? "steps--four" : ""
-            }`}
-          >
-            {slide.steps?.map((step, i) => {
-              const inPhone = i >= 1 && i <= 3;
-              return (
-                <div
-                  key={step.index + step.title}
-                  className="step-col"
-                  style={{ "--i": i } as CSSProperties}
-                >
-                  <div className="feature-card feature-card--step">
-                    <span className="feature-card__index">{step.index}</span>
-                    <div className="feature-card__body">
+        <div className="layout layout--roadmap layout--illustrated">
+          <div className="illus-split">
+            <div className="illus-split__copy">
+              <p className="eyebrow">{slide.eyebrow}</p>
+              <h2 className="title">{slide.title}</h2>
+              <ol className="timeline">
+                {slide.steps?.map((step, i) => (
+                  <li
+                    key={step.index + step.title}
+                    className={`timeline__item${narrateClass(highlightId, `step-${i}`)}`}
+                    style={{ "--i": i } as CSSProperties}
+                  >
+                    <LiniqoStill
+                      id={roadmapIcons[i] ?? "seedling-tray-rack"}
+                      alt=""
+                      className="timeline__icon"
+                    />
+                    <div>
+                      <span className="timeline__index">{step.index}</span>
                       <h3>{step.title}</h3>
                       <p>{step.body}</p>
                     </div>
-                  </div>
-                  {step.image ? (
-                    <div className={`step-col__media ${inPhone ? "step-col__media--phone" : ""}`}>
-                      {inPhone ? (
-                        <div className="phone-frame" aria-hidden={false}>
-                          <span className="phone-frame__speaker" />
-                          <span className="phone-frame__notch" />
-                          <div className="phone-frame__screen">
-                            <Image
-                              src={step.image}
-                              alt={step.title}
-                              width={480}
-                              height={960}
-                              className="step-col__img step-col__img--phone"
-                            />
-                          </div>
-                          <span className="phone-frame__btn phone-frame__btn--silent" />
-                          <span className="phone-frame__btn phone-frame__btn--vol-up" />
-                          <span className="phone-frame__btn phone-frame__btn--vol-down" />
-                          <span className="phone-frame__btn phone-frame__btn--power" />
-                        </div>
-                      ) : (
-                        <Image
-                          src={step.image}
-                          alt={step.title}
-                          width={480}
-                          height={480}
-                          className="step-col__img"
-                        />
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <div className="illus-split__art">
+              <div className="lq-figure lq-figure--still-lg">
+                <LiniqoStill
+                  id="smart-thermostat-wall"
+                  alt="Smart thermostat"
+                  className="lq-still lq-still--hero"
+                />
+              </div>
+              <div className="lq-figure lq-figure--live">
+                <SmartHomeScroll className="lq-figure__live" />
+              </div>
+              <p className="lq-hint">Auto rooms light up · hover to steer</p>
+            </div>
           </div>
-          {slide.note ? <p className="footnote">{slide.note}</p> : null}
         </div>
       );
+    }
 
-    case "market":
+    case "steps": {
+      const stepIcons = [
+        "sapling-planting-pot",
+        "soil-sensor-probe",
+        "sprinkler-timer-controller",
+        "notification-center-popover",
+        "flower-pot",
+      ];
       return (
-        <div className="layout layout--market">
-          <p className="eyebrow">{slide.eyebrow}</p>
-          <h2 className="title">{slide.title}</h2>
-          {slide.subtitle ? <p className="lede">{slide.subtitle}</p> : null}
-          <div className="stats">
-            {slide.stats?.map((stat) => (
-              <div key={stat.value} className="stat market-stat">
-                <strong>{stat.value}</strong>
-                <p>{stat.label}</p>
+        <div className="layout layout--steps layout--illustrated">
+          <aside className="steps-intro">
+            <p className="eyebrow">{slide.eyebrow}</p>
+            <h2 className="title">{slide.title}</h2>
+            {slide.subtitle ? <p className="lede">{slide.subtitle}</p> : null}
+            <div className="steps-intro__art">
+              <div className="lq-figure lq-figure--live lq-figure--compact">
+                <OfficePlant className="lq-figure__live" />
               </div>
+              <p className="lq-hint">Auto sway · hover — leaves follow</p>
+            </div>
+          </aside>
+          <ol className="timeline timeline--rail">
+            {slide.steps?.map((step, i) => (
+              <li
+                key={step.index + step.title}
+                className={`timeline__item${narrateClass(highlightId, `step-${i}`)}`}
+                style={{ "--i": i } as CSSProperties}
+              >
+                <LiniqoStill id={stepIcons[i] ?? "flower-pot"} alt="" className="timeline__icon" />
+                <div>
+                  <span className="timeline__index">{step.index}</span>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                </div>
+              </li>
             ))}
-          </div>
-          <div className="grid grid--4 market-grid">
-            {slide.cards?.map((card) => (
-              <div key={card.title} className="card market-card">
-                <h3>{card.title}</h3>
-                <p>{card.body}</p>
-              </div>
-            ))}
-          </div>
+          </ol>
           {slide.note ? <p className="footnote">{slide.note}</p> : null}
         </div>
       );
+    }
+
+    case "market": {
+      const marketIcons = [
+        "raised-garden-bed",
+        "sapling-planting-pot",
+        "compost-bin-heap",
+        "greenhouse-glass",
+      ];
+      return (
+        <div className="layout layout--market layout--illustrated">
+          <div className="illus-split">
+            <div className="illus-split__copy">
+              <p className="eyebrow">{slide.eyebrow}</p>
+              <h2 className="title">{slide.title}</h2>
+              {slide.subtitle ? <p className="lede">{slide.subtitle}</p> : null}
+              <div className="stats stats--inline">
+                {slide.stats?.map((stat, i) => (
+                  <div
+                    key={stat.value}
+                    className={`stat market-stat${narrateClass(highlightId, `stat-${i}`)}`}
+                  >
+                    <strong>{stat.value}</strong>
+                    <p>{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+              <ul className="feature-lines feature-lines--compact">
+                {slide.cards?.map((card, i) => (
+                  <FeatureLine
+                    key={card.title}
+                    icon={marketIcons[i] ?? "greenhouse-glass"}
+                    title={card.title}
+                    body={card.body}
+                    i={i}
+                    highlightId={highlightId}
+                  />
+                ))}
+              </ul>
+              {slide.note ? <p className="footnote">{slide.note}</p> : null}
+            </div>
+            <div className="illus-split__art illus-split__art--stack">
+              <div className="lq-figure lq-figure--live">
+                <GrowthChart className="lq-figure__live" />
+              </div>
+              <div className="lq-figure lq-figure--live lq-figure--secondary">
+                <NotificationBell className="lq-figure__live" />
+              </div>
+              <p className="lq-hint">Auto tour · hover chart or bell</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     case "pricing":
       return (
-        <div className="layout layout--pricing">
-          <p className="eyebrow">{slide.eyebrow}</p>
-          <h2 className="title">{slide.title}</h2>
-          <div className="tiers">
-            {slide.tiers?.map((tier) => (
-              <div
-                key={tier.name}
-                className={`tier pricing-tier ${tier.featured ? "tier--featured" : ""} ${tier.name === "Starter" ? "tier--starter" : ""}`}
-              >
-                <p
-                  className="tier__name"
-                  style={tier.name === "Starter" ? { color: "#e8eaee" } : undefined}
-                >
-                  {tier.name}
-                </p>
-                <p className="tier__price">{tier.price}</p>
-                <ul>
-                  {tier.items.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
+        <div className="layout layout--pricing layout--illustrated">
+          <div className="illus-split">
+            <div className="illus-split__copy">
+              <p className="eyebrow">{slide.eyebrow}</p>
+              <h2 className="title">{slide.title}</h2>
+              <div className="tiers tiers--bare">
+                {slide.tiers?.map((tier, i) => (
+                  <div
+                    key={tier.name}
+                    className={`tier pricing-tier tier--bare ${tier.featured ? "tier--featured" : ""} ${tier.name === "Starter" ? "tier--starter" : ""} ${tier.name === "Premium" ? "tier--premium" : ""}${narrateClass(highlightId, `tier-${i}`)}`}
+                  >
+                    <p className="tier__name">{tier.name}</p>
+                    <p className="tier__price">{tier.price}</p>
+                    <ul>
+                      {tier.items.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+            <div className="illus-split__art">
+              <div className="lq-figure lq-figure--live">
+                <PricingTiersLive className="lq-figure__live" />
+              </div>
+              <p className="lq-hint">Auto tour · hover a pedestal to lift it</p>
+            </div>
           </div>
         </div>
       );
 
-    case "business":
+    case "business": {
+      const businessIcons = [
+        "pricing-tier-cards",
+        "seedling-tray-rack",
+        "sprinkler-timer-controller",
+        "onboarding-stepper",
+      ];
       return (
-        <div className="layout layout--business">
-          <p className="eyebrow">{slide.eyebrow}</p>
-          <h2 className="title">{slide.title}</h2>
-          {slide.subtitle ? <p className="lede">{slide.subtitle}</p> : null}
-          {slide.flow ? <ShapeFlow items={slide.flow} /> : null}
-          <div className="grid grid--3">
-            {slide.cards?.map((card) => (
-              <div key={card.title} className="card forest-card">
-                <h3>{card.title}</h3>
-                <p>{card.body}</p>
+        <div className="layout layout--business layout--illustrated">
+          <div className="illus-split">
+            <div className="illus-split__copy">
+              <p className="eyebrow">{slide.eyebrow}</p>
+              <h2 className="title">{slide.title}</h2>
+              {slide.subtitle ? <p className="lede">{slide.subtitle}</p> : null}
+              {slide.flow ? <ShapeFlow items={slide.flow} highlightId={highlightId} /> : null}
+              <ul className="feature-lines">
+                {slide.cards?.map((card, i) => (
+                  <FeatureLine
+                    key={card.title}
+                    icon={businessIcons[i] ?? "pricing-tier-cards"}
+                    title={card.title}
+                    body={card.body}
+                    i={i}
+                    highlightId={highlightId}
+                  />
+                ))}
+              </ul>
+              {slide.note ? <p className="footnote">{slide.note}</p> : null}
+            </div>
+            <div className="illus-split__art">
+              <div className="lq-figure lq-figure--live">
+                <AutomationGears className="lq-figure__live" />
               </div>
-            ))}
+              <p className="lq-hint">Auto spin · hover to turn the gears</p>
+            </div>
           </div>
-          {slide.note ? <p className="footnote">{slide.note}</p> : null}
         </div>
       );
+    }
 
     case "audience":
       return (
@@ -387,8 +538,11 @@ function SlideBody({ slide }: { slide: Slide }) {
           <p className="eyebrow">{slide.eyebrow}</p>
           <h2 className="title">{slide.title}</h2>
           <div className="share-list">
-            {slide.shares?.map((share) => (
-              <div key={share.label} className="share-row forest-card">
+            {slide.shares?.map((share, i) => (
+              <div
+                key={share.label}
+                className={`share-row forest-card${narrateClass(highlightId, `share-${i}`)}`}
+              >
                 <div className="share-row__top">
                   <strong>{share.label}</strong>
                   <span>{share.pct}%</span>
@@ -404,22 +558,49 @@ function SlideBody({ slide }: { slide: Slide }) {
         </div>
       );
 
-    case "advantage":
+    case "advantage": {
+      const advantageIcons = [
+        "hydroponic-channel",
+        "vertical-farm-racks",
+        "smart-thermostat-wall",
+      ];
       return (
-        <div className="layout layout--advantage">
-          <p className="eyebrow">{slide.eyebrow}</p>
-          <h2 className="title">{slide.title}</h2>
-          {slide.subtitle ? <p className="lede">{slide.subtitle}</p> : null}
-          <div className="grid grid--3">
-            {slide.cards?.map((card) => (
-              <div key={card.title} className="card forest-card">
-                <h3>{card.title}</h3>
-                <p>{card.body}</p>
+        <div className="layout layout--advantage layout--illustrated">
+          <div className="illus-split">
+            <div className="illus-split__copy">
+              <p className="eyebrow">{slide.eyebrow}</p>
+              <h2 className="title">{slide.title}</h2>
+              {slide.subtitle ? <p className="lede">{slide.subtitle}</p> : null}
+              <ul className="feature-lines">
+                {slide.cards?.map((card, i) => (
+                  <FeatureLine
+                    key={card.title}
+                    icon={advantageIcons[i] ?? "hydroponic-channel"}
+                    title={card.title}
+                    body={card.body}
+                    i={i}
+                    highlightId={highlightId}
+                  />
+                ))}
+              </ul>
+            </div>
+            <div className="illus-split__art">
+              <div className="lq-figure lq-figure--still-lg">
+                <LiniqoStill
+                  id="vertical-farm-racks"
+                  alt="Vertical farm racks"
+                  className="lq-still lq-still--hero"
+                />
               </div>
-            ))}
+              <div className="lq-figure lq-figure--live">
+                <PlantGrowthScroll className="lq-figure__live" />
+              </div>
+              <p className="lq-hint">Auto growth · hover to scrub the sprout</p>
+            </div>
           </div>
         </div>
       );
+    }
 
     case "validation":
       return (
@@ -428,8 +609,11 @@ function SlideBody({ slide }: { slide: Slide }) {
           <h2 className="title">{slide.title}</h2>
           {slide.subtitle ? <p className="lede">{slide.subtitle}</p> : null}
           <div className="crops">
-            {slide.crops?.map((crop) => (
-              <figure key={crop.name} className="crop forest-card">
+            {slide.crops?.map((crop, i) => (
+              <figure
+                key={crop.name}
+                className={`crop forest-card${narrateClass(highlightId, `crop-${i}`)}`}
+              >
                 <div className="crop__media">
                   <Image
                     src={crop.image}
@@ -448,12 +632,21 @@ function SlideBody({ slide }: { slide: Slide }) {
 
     case "team":
       return (
-        <div className="layout layout--team">
+        <div className="layout layout--team layout--illustrated">
           <p className="eyebrow">{slide.eyebrow}</p>
           <h2 className="title">{slide.title}</h2>
+          <div className="team-live">
+            <div className="lq-figure lq-figure--live lq-figure--team">
+              <TeamAvatars className="lq-figure__live" />
+            </div>
+            <p className="lq-hint">Auto tour · hover an avatar to lift it</p>
+          </div>
           <div className="team-grid">
-            {slide.cards?.map((card) => (
-              <article key={card.title} className="team-card">
+            {slide.cards?.map((card, i) => (
+              <article
+                key={card.title}
+                className={`team-card${narrateClass(highlightId, `card-${i}`)}`}
+              >
                 <div className="team-card__photo">
                   {card.image ? (
                     <Image
@@ -500,26 +693,29 @@ function SlideBody({ slide }: { slide: Slide }) {
               ))}
             </ul>
           </div>
-          <div className="visual visual--hero visual--contained">
+          <div className="illus-split__art">
+            <div className="lq-figure lq-figure--live lq-figure--outline">
+              <OfficePlant
+                className="lq-figure__live"
+                bg="transparent"
+                line="#52b788"
+                accent="#d4bc7a"
+              />
+            </div>
+            <p className="lq-hint">Auto sway · hover — leaves follow</p>
             {slide.video ? (
-              <video
-                className="visual__video"
-                src={slide.video}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                aria-label={slide.imageAlt || slide.title}
-              />
-            ) : slide.image ? (
-              <Image
-                src={slide.image}
-                alt={slide.imageAlt || slide.title}
-                width={900}
-                height={506}
-                className="visual__img"
-              />
+              <div className="visual visual--hero visual--contained visual--soft">
+                <video
+                  className="visual__video"
+                  src={slide.video}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  aria-label={slide.imageAlt || slide.title}
+                />
+              </div>
             ) : null}
           </div>
         </div>
@@ -562,11 +758,19 @@ export default function PitchSlider() {
     });
   }, []);
 
-  const { mode, speaking, paused, supported, setPresenterMode, onSlideClick } =
-    usePitchPresenter({
-      index,
-      goTo,
-    });
+  const {
+    mode,
+    speaking,
+    paused,
+    supported,
+    highlightId,
+    setPresenterMode,
+    onSlideClick,
+  } = usePitchPresenter({
+    index,
+    goTo,
+    isFullscreen,
+  });
 
   const next = useCallback(() => goTo(index + 1), [goTo, index]);
   const prev = useCallback(() => goTo(index - 1), [goTo, index]);
@@ -700,11 +904,13 @@ export default function PitchSlider() {
           {!supported
             ? "Voice not supported in this browser — try Chrome or Edge"
             : mode === "auto"
-              ? paused
-                ? "Paused — click the slide to resume"
-                : speaking
-                  ? "AI presenting… auto-advances · click slide to pause"
-                  : "Starting voice… unmute the tab if needed"
+              ? slide.kind === "dua" && !isFullscreen
+                ? "Enter full screen to begin the opening"
+                : paused
+                  ? "Paused — click the slide to resume"
+                  : speaking
+                    ? "AI presenting… auto-advances · click slide to pause"
+                    : "Starting voice… unmute the tab if needed"
               : "Manual mode — you present; AI is silent"}
         </p>
       </div>
@@ -736,9 +942,15 @@ export default function PitchSlider() {
           }
         >
           <div className="slider__stage-inner" key={animKey}>
-            <SlideShell slide={slide}>
-              <SlideBody slide={slide} />
-            </SlideShell>
+            <LiniqoSlideProvider remountKey={`${index}-${animKey}-${slide.kind === "dua" ? (isFullscreen ? "reveal" : "welcome") : "on"}`}>
+              <SlideShell slide={slide}>
+                <SlideBody
+                  slide={slide}
+                  revealDua={isFullscreen}
+                  highlightId={mode === "auto" ? highlightId : null}
+                />
+              </SlideShell>
+            </LiniqoSlideProvider>
           </div>
 
           {mode === "auto" && paused ? (

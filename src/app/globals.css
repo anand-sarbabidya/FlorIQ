@@ -21,6 +21,7 @@
     linear-gradient(155deg, #fffeeb 0%, #fbf6ea 45%, #f6efdf 100%);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
+  --font-arabic: var(--font-arabic);
 }
 
 @theme inline {
@@ -406,6 +407,15 @@ a {
   }
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes float-y {
   0%,
   100% {
@@ -525,98 +535,109 @@ a {
   color: rgba(216, 243, 220, 0.78);
 }
 
-/* Market stats: dark green–gold (same as problem / feature cards) */
+/* Market stats: cream–sage stroke panels (light deck vibe, not dark fill) */
 .slide--light .stat.market-stat {
-  border: 1px solid rgba(212, 188, 122, 0.28);
-  background: var(--card-forest);
-  color: var(--ivory);
+  border: 1px solid rgba(45, 106, 79, 0.16);
+  background:
+    radial-gradient(ellipse 80% 70% at 0% 0%, rgba(82, 183, 136, 0.1), transparent 55%),
+    radial-gradient(ellipse 55% 70% at 100% 100%, rgba(212, 188, 122, 0.08), transparent 50%),
+    linear-gradient(145deg, #fffcf7 0%, #f5faf7 52%, #eef6f1 100%);
+  color: var(--forest);
   box-shadow:
-    0 14px 32px rgba(8, 18, 12, 0.18),
-    inset 0 1px 0 rgba(212, 188, 122, 0.18);
+    0 8px 22px rgba(20, 38, 28, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .slide--light .stat.market-stat strong {
-  color: var(--sage-soft);
+  color: var(--forest);
+  font-size: clamp(1.55rem, 2.3vw, 2rem);
 }
 
 .slide--light .stat.market-stat p {
-  color: rgba(216, 243, 220, 0.78);
+  color: var(--muted);
 }
 
-/* Slide 6 — green–gold pricing cards (must follow .slide--light .tier) */
+/* Slide 6 — light bare pricing cards: forest ink body, accent labels only */
 .slide--light .tier.pricing-tier,
 .slide--light .tier.pricing-tier.tier--featured {
-  border: 1px solid rgba(212, 188, 122, 0.28);
-  background: var(--card-forest);
-  color: var(--ivory);
-  box-shadow:
-    0 14px 32px rgba(8, 18, 12, 0.18),
-    inset 0 1px 0 rgba(212, 188, 122, 0.18);
+  color: var(--forest);
 }
 
 .slide--light .tier.pricing-tier .tier__name {
-  color: var(--gold);
+  color: #9a7f3e;
 }
 
 .slide[data-kind="pricing"] .tier.pricing-tier.tier--starter .tier__name,
 .slide--light .tier.pricing-tier.tier--starter .tier__name,
 .slide--light .tier.pricing-tier:first-child .tier__name {
-  color: #e8eaee !important;
+  color: #5c6570 !important;
 }
 
 .slide--light .tier.pricing-tier .tier__price {
-  color: var(--ivory);
+  color: var(--forest);
 }
 
 .slide--light .tier.pricing-tier li {
-  color: rgba(216, 243, 220, 0.8);
+  color: rgba(20, 38, 28, 0.72);
 }
 
 .slide--light .tier.pricing-tier li::before {
-  color: var(--gold);
-}
-
-.slide--light .tier.pricing-tier.tier--featured {
-  border-color: rgba(212, 188, 122, 0.5);
-  box-shadow:
-    0 16px 36px rgba(8, 18, 12, 0.22),
-    inset 0 1px 0 rgba(212, 188, 122, 0.28);
+  color: var(--forest-mid);
 }
 
 .slide--light .tier.pricing-tier.tier--featured .tier__name {
-  color: var(--sage-soft);
+  color: var(--forest-mid);
+}
+
+.slide--light .tier.pricing-tier.tier--featured li {
+  color: rgba(20, 38, 28, 0.72);
 }
 
 /* Shared dark green–gold cards (slides 6–8+) */
-.slide--light .card.forest-card,
-.slide--light .share-row.forest-card {
+.slide--light .card.forest-card {
   border: 1px solid rgba(212, 188, 122, 0.28);
   background: var(--card-forest);
   color: var(--ivory);
   box-shadow:
     0 14px 32px rgba(8, 18, 12, 0.18),
     inset 0 1px 0 rgba(212, 188, 122, 0.18);
+}
+
+/* Audience share rows — soft cream/sage, matches light slide vibe */
+.slide--light .share-row.forest-card {
+  border: 1px solid rgba(45, 106, 79, 0.12);
+  background:
+    radial-gradient(ellipse 80% 70% at 0% 0%, rgba(82, 183, 136, 0.14), transparent 55%),
+    radial-gradient(ellipse 60% 80% at 100% 100%, rgba(212, 188, 122, 0.12), transparent 50%),
+    linear-gradient(145deg, #fffcf7 0%, #f4faf6 48%, #eef6f1 100%);
+  color: var(--forest);
+  box-shadow:
+    0 10px 28px rgba(20, 38, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .slide--light .card.forest-card h3 {
   color: var(--gold);
 }
 
-.slide--light .card.forest-card p,
-.slide--light .share-row.forest-card p {
+.slide--light .card.forest-card p {
   color: rgba(216, 243, 220, 0.8);
 }
 
+.slide--light .share-row.forest-card p {
+  color: var(--muted);
+}
+
 .slide--light .share-row.forest-card strong {
-  color: var(--ivory);
+  color: var(--forest);
 }
 
 .slide--light .share-row.forest-card .share-row__top span {
-  color: var(--gold);
+  color: var(--forest-mid);
 }
 
 .slide--light .share-row.forest-card .share-row__track {
-  background: rgba(247, 244, 238, 0.12);
+  background: rgba(45, 106, 79, 0.1);
 }
 
 .slide--light .crop.forest-card {
@@ -690,6 +711,249 @@ a {
   gap: 1.1rem;
   padding: clamp(1.2rem, 3vw, 2.3rem);
   height: 100%;
+}
+
+/* Slide 0 — fill stage height so welcome / surah stack can true-center */
+.slide[data-kind="dua"] {
+  display: flex;
+  flex-direction: column;
+  height: min(72svh, 680px);
+}
+
+/* Slide 0 — opening dua: centered stack densified to fit 7 ayahs + translation + book in 720px slide */
+.layout--dua {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  place-content: center;
+  text-align: center;
+  gap: clamp(0.5rem, 1.4vw, 0.85rem);
+  padding-block: clamp(0.55rem, 1.6vw, 1rem);
+  width: 100%;
+  min-height: 0;
+}
+
+/* Pre-fullscreen welcome on slide 0 — calm reveal, true center of slide stage */
+.dua-welcome {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  place-content: center;
+  gap: clamp(0.55rem, 1.4vw, 0.9rem);
+  width: 100%;
+  min-height: 100%;
+  max-width: min(28rem, 92%);
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+.dua-welcome__bismillah {
+  margin: 0;
+  font-family: var(--font-arabic), "Noto Naskh Arabic", "Amiri", serif;
+  font-size: clamp(1.65rem, 3.6vw, 2.35rem);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+  animation: dua-welcome-rise 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dua-welcome__title {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.35rem, 2.8vw, 1.85rem);
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  animation: dua-welcome-fade 1s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
+}
+
+.dua-welcome__hint {
+  margin: 0.35rem 0 0;
+  font-family: var(--font-body), Manrope, system-ui, sans-serif;
+  font-size: clamp(0.68rem, 1vw, 0.78rem);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(247, 244, 238, 0.32);
+  animation: dua-welcome-fade 1.05s cubic-bezier(0.22, 1, 0.36, 1) 0.85s both;
+}
+
+@keyframes dua-welcome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.7rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dua-welcome-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dua__eyebrow {
+  margin: 0;
+  letter-spacing: 0.18em;
+  opacity: 0.78;
+}
+
+.dua {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.15rem, 0.65vw, 0.32rem);
+  max-width: min(40rem, 100%);
+}
+
+.dua__arabic {
+  margin: 0;
+  font-family: var(--font-arabic), "Noto Naskh Arabic", "Amiri", serif;
+  font-size: clamp(1.05rem, 2.3vw, 1.58rem);
+  font-weight: 600;
+  line-height: 1.48;
+  letter-spacing: 0.01em;
+  color: var(--ivory);
+  text-wrap: balance;
+}
+
+.dua__translation {
+  margin: 0;
+  max-width: min(34rem, 92%);
+  padding: 0;
+  border: 0;
+}
+
+.dua__translation p {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(0.72rem, 1.1vw, 0.88rem);
+  font-weight: 500;
+  line-height: 1.45;
+  color: rgba(247, 244, 238, 0.62);
+  text-wrap: pretty;
+}
+
+.dua__citation {
+  display: block;
+  margin-top: 0.4rem;
+  font-family: var(--font-body), Manrope, system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color: rgba(212, 188, 122, 0.78);
+}
+
+.dua__book {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.22rem;
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+.lq-figure--dua-book {
+  width: min(100%, 8.25rem);
+  aspect-ratio: 5 / 4;
+}
+
+.dua__book-caption {
+  margin: 0;
+  font-family: var(--font-body), Manrope, system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(247, 244, 238, 0.38);
+}
+
+.slide[data-kind="dua"] .slide__inner {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* Keep dua stack centered in fullscreen (overrides global layout flex-start) */
+.slider__stage.is-fullscreen .slide[data-kind="dua"] {
+  height: auto;
+  max-height: min(100%, 100dvh);
+  display: flex;
+  flex-direction: column;
+}
+
+.slider__stage.is-fullscreen .slide[data-kind="dua"] .slide__inner {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+}
+
+.slider__stage.is-fullscreen .layout--dua {
+  flex: 1 1 auto;
+  height: auto !important;
+  min-height: 0 !important;
+  justify-content: center;
+  place-content: center;
+}
+
+/* Fade-in stagger: Arabic → English → book (~0.35–0.45s steps) */
+.slide[data-kind="dua"] .layout--dua .dua__eyebrow {
+  animation: fade-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.slide[data-kind="dua"] .layout--dua .dua__arabic {
+  animation: fade-in 780ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.slide[data-kind="dua"] .layout--dua .dua__arabic:nth-child(1) {
+  animation-delay: 80ms;
+}
+.slide[data-kind="dua"] .layout--dua .dua__arabic:nth-child(2) {
+  animation-delay: 160ms;
+}
+.slide[data-kind="dua"] .layout--dua .dua__arabic:nth-child(3) {
+  animation-delay: 240ms;
+}
+.slide[data-kind="dua"] .layout--dua .dua__arabic:nth-child(4) {
+  animation-delay: 320ms;
+}
+.slide[data-kind="dua"] .layout--dua .dua__arabic:nth-child(5) {
+  animation-delay: 400ms;
+}
+.slide[data-kind="dua"] .layout--dua .dua__arabic:nth-child(6) {
+  animation-delay: 480ms;
+}
+.slide[data-kind="dua"] .layout--dua .dua__arabic:nth-child(7) {
+  animation-delay: 560ms;
+}
+
+.slide[data-kind="dua"] .layout--dua .dua__translation {
+  animation: fade-in 820ms cubic-bezier(0.22, 1, 0.36, 1) 0.95s both;
+}
+
+.slide[data-kind="dua"] .layout--dua .dua__book {
+  animation: fade-in 860ms cubic-bezier(0.22, 1, 0.36, 1) 1.4s both;
 }
 
 /* Slide 11 — vertically center roadmap block in the slide */
@@ -869,6 +1133,26 @@ a {
 
 .visual--hero.visual--contained:has(.visual__video) {
   max-width: 640px;
+}
+
+/* Product videos in illus-split art columns (problem / solution) */
+.visual--art-video {
+  width: 100%;
+  max-width: min(100%, 28rem);
+  margin-inline: auto;
+}
+
+.visual--art-video .visual__video {
+  width: 100%;
+  max-height: min(52vh, 420px);
+  border-radius: 1.25rem;
+  box-shadow:
+    0 18px 40px rgba(12, 18, 10, 0.28),
+    inset 0 1px 0 rgba(212, 188, 122, 0.1);
+}
+
+.slider__stage.is-fullscreen .visual--art-video .visual__video {
+  max-height: min(58vh, 520px);
 }
 
 .slider__stage.is-fullscreen .visual__video {
@@ -1306,7 +1590,8 @@ a {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--sage), var(--gold));
+  background: linear-gradient(90deg, var(--sage) 0%, var(--sage-soft) 45%, var(--gold) 100%);
+  box-shadow: 0 0 12px rgba(82, 183, 136, 0.35);
 }
 
 .share-row p {
@@ -2335,7 +2620,14 @@ a {
   .journey__step,
   .problem-card,
   .feature-card,
-  .step-col {
+  .step-col,
+  .slide[data-kind="dua"] .layout--dua .dua__eyebrow,
+  .slide[data-kind="dua"] .layout--dua .dua__arabic,
+  .slide[data-kind="dua"] .layout--dua .dua__translation,
+  .slide[data-kind="dua"] .layout--dua .dua__book,
+  .dua-welcome__bismillah,
+  .dua-welcome__title,
+  .dua-welcome__hint {
     animation: none !important;
   }
 
@@ -2346,5 +2638,552 @@ a {
   .card.market-card:hover,
   .team-card:hover {
     transform: none;
+  }
+}
+
+/* —— Liniqo illustration layouts (less card chrome) —— */
+.layout--illustrated {
+  gap: 0.45rem;
+  height: 100%;
+}
+
+.illus-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(14rem, 0.8fr);
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  align-items: center;
+  min-height: 0;
+  height: 100%;
+}
+
+.illus-split__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.illus-split__art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.illus-split__art--stack .visual--soft {
+  width: min(100%, 18rem);
+  border-radius: 1rem;
+  overflow: hidden;
+  margin-bottom: 0.15rem;
+}
+
+.feature-lines {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem 0.75rem;
+}
+
+.feature-lines--compact {
+  gap: 0.35rem 0.65rem;
+}
+
+.feature-line {
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0;
+  animation: rise-in 0.55s ease both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+.lq-still-wrap {
+  display: inline-grid;
+  place-items: center;
+  perspective: 520px;
+  transform-style: preserve-3d;
+  line-height: 0;
+}
+
+.lq-still-wrap .lq-still {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: inherit;
+  transform: rotateX(var(--lq-tilt-x, 0deg)) rotateY(var(--lq-tilt-y, 0deg))
+    translateY(calc(var(--lq-lift, 0) * -0.22rem))
+    scale(calc(1 + var(--lq-lift, 0) * 0.04));
+  transition: transform 0.2s ease-out;
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+
+.lq-still-wrap--interactive {
+  cursor: grab;
+  touch-action: none;
+}
+
+.feature-line__icon,
+.lq-still-wrap.lq-still,
+.lq-still {
+  width: 2.6rem;
+  height: 2.6rem;
+  object-fit: contain;
+  display: block;
+  border-radius: 0.45rem;
+}
+
+.feature-line__icon {
+  display: inline-grid;
+}
+
+.timeline__icon {
+  border-radius: 0.55rem;
+  display: inline-grid;
+}
+
+.lq-still--hero,
+.lq-still-wrap.lq-still--hero {
+  border-radius: 0.85rem;
+  width: min(100%, 16rem);
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.feature-line__copy h3 {
+  margin: 0 0 0.1rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--forest);
+}
+
+.slide--dark .feature-line__copy h3 {
+  color: var(--ivory);
+}
+
+.feature-line__copy p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.slide--dark .feature-line__copy p {
+  color: rgba(247, 244, 238, 0.68);
+}
+
+.timeline {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.timeline__item {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+  animation: rise-in 0.55s ease both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+.timeline__icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  object-fit: contain;
+}
+
+.timeline__icon .lq-still {
+  width: 100%;
+  height: 100%;
+}
+
+.feature-line__icon .lq-still {
+  width: 100%;
+  height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lq-still-wrap--interactive .lq-still {
+    transition: none;
+    transform: none;
+  }
+}
+
+.timeline__index {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--forest-mid);
+  margin-bottom: 0.15rem;
+}
+
+.timeline__item h3 {
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
+  color: var(--forest);
+}
+
+.timeline__item p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* Slide 4 — how it works: two-column composition (after base .timeline) */
+.slide[data-kind="steps"] {
+  min-height: min(56svh, 500px);
+  max-height: min(66svh, 580px);
+  height: auto;
+}
+
+.layout--steps {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1.05fr) minmax(0, 1.25fr);
+  gap: clamp(1rem, 2.8vw, 2.1rem);
+  align-items: center;
+  height: 100%;
+  justify-content: stretch;
+}
+
+.steps-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+  height: 100%;
+  justify-content: center;
+}
+
+.steps-intro .title {
+  max-width: 12ch;
+}
+
+.steps-intro__art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 0.25rem;
+  /* Lift plant so it optically centers with the steps rail */
+  margin-top: -2rem;
+  transform: translateY(-0.9rem);
+  min-height: 0;
+}
+
+/* Two classes so this beats .lq-figure--live (19rem) later in the sheet */
+.lq-figure.lq-figure--compact {
+  width: min(100%, 28rem);
+}
+
+.timeline.timeline--rail {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem 1rem;
+  align-content: center;
+  margin: 0;
+  height: 100%;
+  min-width: 0;
+}
+
+.timeline--rail .timeline__item {
+  grid-template-columns: 2.85rem minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.35rem 0;
+}
+
+.timeline--rail .timeline__item:last-child {
+  grid-column: 1 / -1;
+}
+
+.timeline--rail .timeline__icon {
+  width: 2.85rem;
+  height: 2.85rem;
+}
+
+.timeline--rail .timeline__item h3 {
+  font-size: 0.92rem;
+  margin-bottom: 0.1rem;
+}
+
+.timeline--rail .timeline__item p {
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.slider__stage.is-fullscreen .slide[data-kind="steps"] {
+  min-height: 0;
+  max-height: none;
+  height: 100%;
+}
+
+.slider__stage.is-fullscreen .layout--steps {
+  height: 100%;
+}
+
+.slider__stage.is-fullscreen .lq-figure.lq-figure--compact {
+  width: min(100%, 33rem);
+}
+
+@media (max-width: 860px) {
+  .layout--steps {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .steps-intro .title {
+    max-width: none;
+  }
+
+  .steps-intro__art {
+    max-width: 22rem;
+    flex: 0 0 auto;
+  }
+
+  .timeline.timeline--rail {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline--rail .timeline__item:last-child {
+    grid-column: auto;
+    max-width: none;
+  }
+}
+
+/*
+ * Liniqo Live hairline palette (paint() maps data-bg/accent/line → --hairline-*).
+ * Multi-tone: champagne plate + forest edge + sage/celadon/bronze hi.
+ */
+[data-liniqo] {
+  --lq-plate: #f3efe6;
+  --lq-accent: #3d9b6e;
+  --lq-line: #1e5c45;
+}
+
+/* Close + dua outline: stroke only, no plate fill, no glow. */
+.layout--close .lq-figure--outline [data-liniqo],
+.layout--dua .lq-figure--outline [data-liniqo] {
+  --hairline-plate: transparent;
+  --hairline-stroke: 1.2;
+  --hairline-edge: #52b788;
+  --hairline-hi: #d4bc7a;
+  --hairline-mid: color-mix(in srgb, #2d6a4f 72%, transparent);
+  --hairline-lo: color-mix(in srgb, #74c69d 48%, transparent);
+}
+
+.layout--close .lq-figure--outline [data-liniqo] svg :is(path, polygon, ellipse, line):not(.dot),
+.layout--dua .lq-figure--outline [data-liniqo] svg :is(path, polygon, ellipse, line):not(.dot) {
+  fill: none;
+}
+
+.lq-figure {
+  width: min(100%, 18rem);
+  aspect-ratio: 5 / 4;
+  display: grid;
+  place-items: center;
+}
+
+.lq-figure--live {
+  width: min(100%, 19rem);
+}
+
+.lq-figure--secondary {
+  width: min(100%, 14rem);
+  opacity: 0.96;
+}
+
+.lq-figure--team {
+  width: min(100%, 22rem);
+}
+
+.lq-figure__live {
+  width: 100% !important;
+  max-width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+.lq-figure--still-lg {
+  aspect-ratio: auto;
+  height: auto;
+  margin-bottom: 0.25rem;
+}
+
+.lq-figure--still-lg .lq-still-wrap {
+  width: min(100%, 16rem);
+  aspect-ratio: 1;
+}
+
+.team-live {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0.35rem 0 0.75rem;
+}
+
+.lq-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: rgba(20, 38, 28, 0.68);
+  text-align: center;
+}
+
+.slide--dark .lq-hint {
+  color: rgba(247, 244, 238, 0.62);
+}
+
+.stats--inline {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0.35rem 0 0.5rem;
+}
+
+.tiers--bare {
+  gap: 0.85rem;
+}
+
+.tier--bare {
+  background: transparent !important;
+  border: 1px solid rgba(20, 38, 28, 0.1) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  color: var(--forest) !important;
+}
+
+.tier--bare .tier__price {
+  color: var(--forest);
+}
+
+.tier--bare li {
+  color: rgba(20, 38, 28, 0.72);
+}
+
+.tier--bare.tier--starter {
+  border-color: rgba(92, 101, 112, 0.35) !important;
+}
+
+.tier--bare.tier--featured {
+  border-color: rgba(82, 183, 136, 0.45) !important;
+  background: rgba(82, 183, 136, 0.06) !important;
+}
+
+.tier--bare.tier--premium {
+  border-color: rgba(212, 188, 122, 0.55) !important;
+}
+
+.visual--soft {
+  box-shadow: none;
+  border: 1px solid rgba(20, 38, 28, 0.08);
+}
+
+.team-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+@media (max-width: 960px) {
+  .illus-split {
+    grid-template-columns: 1fr;
+  }
+
+  .illus-split__art {
+    order: -1;
+  }
+
+  .lq-figure,
+  .lq-figure--live {
+    width: min(100%, 18rem);
+  }
+
+  .stats--inline {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+  Auto VO highlight — outline + soft glow only.
+  No transform/animation on the narrated node: rise-in / slide enter already
+  own transform+animation, and stacking them caused jank on slide open.
+*/
+.feature-line,
+.timeline__item,
+.stat.market-stat,
+.tier.pricing-tier,
+.share-row,
+.crop.forest-card,
+.team-card,
+.journey__step {
+  transition:
+    box-shadow 380ms ease,
+    background-color 380ms ease,
+    outline-color 380ms ease,
+    outline-offset 380ms ease;
+}
+
+.feature-line.is-narrating,
+.timeline__item.is-narrating,
+.stat.market-stat.is-narrating,
+.tier.pricing-tier.is-narrating,
+.share-row.is-narrating,
+.crop.forest-card.is-narrating,
+.team-card.is-narrating,
+.journey__step.is-narrating {
+  position: relative;
+  z-index: 2;
+  outline: 2px solid color-mix(in srgb, var(--sage) 62%, transparent);
+  outline-offset: 3px;
+  background-color: color-mix(in srgb, var(--sage) 10%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sage) 28%, transparent);
+}
+
+.slide--light .feature-line.is-narrating,
+.slide--light .timeline__item.is-narrating,
+.slide--light .stat.market-stat.is-narrating,
+.slide--light .tier.pricing-tier.is-narrating,
+.slide--light .share-row.is-narrating,
+.slide--light .crop.forest-card.is-narrating,
+.slide--light .team-card.is-narrating,
+.slide--light .journey__step.is-narrating {
+  background-color: color-mix(in srgb, var(--sage) 12%, #fffaf2);
+  box-shadow: 0 8px 22px rgba(20, 38, 28, 0.08);
+}
+
+.slide--dark .team-card.is-narrating,
+.slide--dark .crop.forest-card.is-narrating,
+.slide--dark .journey__step.is-narrating {
+  background-color: color-mix(in srgb, var(--sage) 16%, transparent);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22);
+  outline-color: color-mix(in srgb, var(--sage) 70%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-line.is-narrating,
+  .timeline__item.is-narrating,
+  .stat.market-stat.is-narrating,
+  .tier.pricing-tier.is-narrating,
+  .share-row.is-narrating,
+  .crop.forest-card.is-narrating,
+  .team-card.is-narrating,
+  .journey__step.is-narrating {
+    transition: none;
   }
 }

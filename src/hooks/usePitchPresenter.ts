@@ -1,6 +1,13 @@
 "use client";
 
 import { slides } from "@/data/slides";
+import {
+  buildNarrationCues,
+  cueIdAtProgress,
+  cueIdForChunk,
+  normScript,
+  type NarrationCue,
+} from "@/lib/narrationHighlights";
 import { fetchTtsAudio, prepareSpokenScript } from "@/lib/tts";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -20,9 +27,18 @@ const SILENT_MP3 =
 /** Keep browser utterances under Chrome's ~14–15s silent-pause window. */
 const BROWSER_CHUNK_CHARS = 160;
 
+/** Wait for slide enter / rise-in before applying is-narrating (avoids transform fights). */
+const SLIDE_ENTER_MS = 640;
+/** When Auto is clicked on an already-open slide, enter has already settled. */
+const SLIDE_ENTER_GESTURE_MS = 40;
+/** Advance highlight slightly ahead of spoken audio. */
+const CUE_LEAD_SEC = 0.24;
+
 type Options = {
   index: number;
   goTo: (next: number) => void;
+  /** Opening dua waits for fullscreen before VO / reveal sync. */
+  isFullscreen?: boolean;
 };
 
 /** "server" = /api/tts MP3 (Edge); "browser" = speechSynthesis fallback */
@@ -66,9 +82,19 @@ function chunkSpokenScript(text: string): string[] {
 }
 
 /** Prefer an upbeat, clear female/neutral English system voice for browser fallback. */
-function pickPresenterVoice(): SpeechSynthesisVoice | null {
+function pickPresenterVoice(preferArabic = false): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) return null;
+
+  if (preferArabic) {
+    const arabic = voices.filter((v) => /^ar/i.test(v.lang));
+    if (arabic.length) {
+      const preferred =
+        arabic.find((v) => /hamed|saudi|zariyah|naayf|neural/i.test(v.name)) ||
+        arabic[0];
+      return preferred;
+    }
+  }
 
   const scoreVoice = (voice: SpeechSynthesisVoice) => {
     const name = voice.name.toLowerCase();
@@ -111,22 +137,27 @@ function pickPresenterVoice(): SpeechSynthesisVoice | null {
  * First start needs a user click (browser gesture rules). After that, slides
  * auto-advance and keep speaking. Slide click still pauses / resumes.
  */
-export function usePitchPresenter({ index, goTo }: Options) {
+export function usePitchPresenter({ index, goTo, isFullscreen = false }: Options) {
   const [mode, setMode] = useState<PresenterMode>("manual");
   const [speaking, setSpeaking] = useState(false);
   /** Mid-utterance pause (click the slide to resume) */
   const [paused, setPaused] = useState(false);
   const [supported, setSupported] = useState(true);
+  /** Active list item / card while Auto VO narrates it */
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const modeRef = useRef<PresenterMode>("manual");
   const indexRef = useRef(index);
   const goToRef = useRef(goTo);
+  const isFullscreenRef = useRef(isFullscreen);
   const runIdRef = useRef(0);
   const speakTimerRef = useRef<number | null>(null);
   const resumeTimerRef = useRef<number | null>(null);
   const pausedRef = useRef(false);
   /** When true, the next index change should auto-speak (slide-to-slide). */
   const autoContinueRef = useRef(false);
+  /** Auto on dua before fullscreen — speak once reveal is allowed. */
+  const pendingDuaSpeakRef = useRef(false);
   const bgmRef = useRef<HTMLAudioElement | null>(null);
   const voAudioRef = useRef<HTMLAudioElement | null>(null);
   const engineRef = useRef<VoiceEngine>("browser");
@@ -141,6 +172,70 @@ export function usePitchPresenter({ index, goTo }: Options) {
   const stopServerAudioRef = useRef<() => void>(() => undefined);
   /** Browser-TTS: continue next chunk after a pause that landed between chunks. */
   const pendingBrowserChunkRef = useRef<(() => void) | null>(null);
+  const highlightTimerRef = useRef<number | null>(null);
+  const highlightReadyAtRef = useRef(0);
+  const cuesRef = useRef<NarrationCue[]>([]);
+
+  const clearHighlightTimer = useCallback(() => {
+    if (highlightTimerRef.current != null) {
+      window.clearInterval(highlightTimerRef.current);
+      window.clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = null;
+    }
+  }, []);
+
+  const resetHighlight = useCallback(() => {
+    clearHighlightTimer();
+    cuesRef.current = [];
+    highlightReadyAtRef.current = 0;
+    setHighlightId(null);
+  }, [clearHighlightTimer]);
+
+  const armHighlightGate = useCallback((fromUserGesture: boolean) => {
+    const wait = fromUserGesture ? SLIDE_ENTER_GESTURE_MS : SLIDE_ENTER_MS;
+    highlightReadyAtRef.current = performance.now() + wait;
+    setHighlightId(null);
+  }, []);
+
+  const startServerHighlightSync = useCallback(
+    (slideIndex: number, spokenScript: string) => {
+      clearHighlightTimer();
+      const slide = slides[slideIndex];
+      if (!slide) {
+        setHighlightId(null);
+        return;
+      }
+      const cues = buildNarrationCues(slide, spokenScript);
+      cuesRef.current = cues;
+      if (!cues.length) {
+        setHighlightId(null);
+        return;
+      }
+
+      // Match cue offsets (normalized script) — avoid unnormalized length lag/skew.
+      const scriptLen = normScript(spokenScript).length || 1;
+
+      // Do not apply is-narrating until slide enter settles.
+      setHighlightId(null);
+
+      highlightTimerRef.current = window.setInterval(() => {
+        if (performance.now() < highlightReadyAtRef.current) {
+          setHighlightId((prev) => (prev == null ? prev : null));
+          return;
+        }
+        const audio = voAudioRef.current;
+        if (!audio || !audio.duration || Number.isNaN(audio.duration)) return;
+        // Time lead only — cueIdAtProgress leadChars=0 to avoid stacking.
+        const progress = Math.min(
+          1,
+          Math.max(0, (audio.currentTime + CUE_LEAD_SEC) / audio.duration),
+        );
+        const next = cueIdAtProgress(cues, progress, scriptLen, 0);
+        setHighlightId((prev) => (prev === next ? prev : next));
+      }, 80);
+    },
+    [clearHighlightTimer],
+  );
 
   const ensureBgm = useCallback(() => {
     if (typeof window === "undefined") return null;
@@ -335,6 +430,7 @@ export function usePitchPresenter({ index, goTo }: Options) {
     stopBgm();
     stopServerAudio();
     clearPrefetch();
+    resetHighlight();
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       try {
@@ -345,12 +441,37 @@ export function usePitchPresenter({ index, goTo }: Options) {
     }
     engineRef.current = "browser";
     setSpeaking(false);
-  }, [clearTimers, setPausedState, stopBgm, stopServerAudio, clearPrefetch]);
+  }, [clearTimers, setPausedState, stopBgm, stopServerAudio, clearPrefetch, resetHighlight]);
+
+  // Keep fullscreen ref in sync; start/stop dua VO with the reveal.
+  useEffect(() => {
+    const wasFullscreen = isFullscreenRef.current;
+    isFullscreenRef.current = isFullscreen;
+
+    const onDua = slides[indexRef.current]?.kind === "dua";
+    if (!onDua) return;
+
+    if (isFullscreen && !wasFullscreen) {
+      if (modeRef.current === "auto" && pendingDuaSpeakRef.current) {
+        pendingDuaSpeakRef.current = false;
+        speakSlideRef.current(indexRef.current, false);
+      }
+      return;
+    }
+
+    if (!isFullscreen && wasFullscreen && modeRef.current === "auto") {
+      pendingDuaSpeakRef.current = true;
+      stopSpeech();
+      // stopSpeech clears auto-continue; keep pending so re-enter restarts VO.
+      pendingDuaSpeakRef.current = true;
+    }
+  }, [isFullscreen, stopSpeech]);
 
   const advanceAfterVo = useCallback(
     (slideIndex: number, runId: number) => {
       if (runIdRef.current !== runId) return;
       clearTimers();
+      resetHighlight();
       setSpeaking(false);
 
       if (modeRef.current !== "auto") return;
@@ -367,7 +488,7 @@ export function usePitchPresenter({ index, goTo }: Options) {
       autoContinueRef.current = true;
       goToRef.current(next);
     },
-    [clearTimers, setPausedState, stopBgm],
+    [clearTimers, setPausedState, stopBgm, resetHighlight],
   );
 
   const prefetchSlide = useCallback((slideIndex: number) => {
@@ -383,7 +504,7 @@ export function usePitchPresenter({ index, goTo }: Options) {
     // Placeholder entry so concurrent calls don't double-fetch.
     prefetchRef.current.set(slideIndex, { url: "", abort });
 
-    fetchTtsAudio(spoken, abort.signal)
+    fetchTtsAudio(spoken, abort.signal, slide.voice)
       .then((blob) => {
         if (!blob || abort.signal.aborted) {
           prefetchRef.current.delete(slideIndex);
@@ -440,9 +561,42 @@ export function usePitchPresenter({ index, goTo }: Options) {
         return;
       }
 
-      const preferred = pickPresenterVoice();
+      const slide = slides[slideIndex];
+      const cues = slide ? buildNarrationCues(slide, spokenScript) : [];
+      cuesRef.current = cues;
+      clearHighlightTimer();
+      setHighlightId(null);
+
+      const preferArabic =
+        Boolean(slides[slideIndex]?.voice?.startsWith("ar-")) ||
+        /[\u0600-\u06FF]/.test(spokenScript);
+      const preferred = pickPresenterVoice(preferArabic);
       let chunkIndex = 0;
       pendingBrowserChunkRef.current = null;
+
+      const applyChunkHighlight = (i: number) => {
+        if (runIdRef.current !== runId || modeRef.current !== "auto") return;
+        if (performance.now() < highlightReadyAtRef.current) {
+          setHighlightId(null);
+          return;
+        }
+        const next = cueIdForChunk(cues, i, chunks.length, spokenScript, chunks);
+        setHighlightId((prev) => (prev === next ? prev : next));
+      };
+
+      const syncChunkHighlight = (i: number) => {
+        clearHighlightTimer();
+        const remaining = highlightReadyAtRef.current - performance.now();
+        if (remaining > 0) {
+          setHighlightId(null);
+          highlightTimerRef.current = window.setTimeout(() => {
+            highlightTimerRef.current = null;
+            applyChunkHighlight(i);
+          }, remaining);
+          return;
+        }
+        applyChunkHighlight(i);
+      };
 
       const speakChunk = () => {
         if (runIdRef.current !== runId || modeRef.current !== "auto") return;
@@ -458,21 +612,24 @@ export function usePitchPresenter({ index, goTo }: Options) {
           return;
         }
 
+        syncChunkHighlight(chunkIndex);
+
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.05;
-        utterance.pitch = 1.05;
+        utterance.rate = preferArabic ? 0.9 : 1.05;
+        utterance.pitch = preferArabic ? 1 : 1.05;
         utterance.volume = 1;
-        utterance.lang = "en-US";
+        utterance.lang = preferArabic ? "ar-SA" : "en-US";
 
         if (preferred) {
           utterance.voice = preferred;
-          utterance.lang = preferred.lang || "en-US";
+          utterance.lang = preferred.lang || (preferArabic ? "ar-SA" : "en-US");
         }
 
         utterance.onstart = () => {
           if (runIdRef.current === runId && modeRef.current === "auto") {
             setSpeaking(true);
             playBgm();
+            syncChunkHighlight(chunkIndex);
           }
         };
 
@@ -520,7 +677,7 @@ export function usePitchPresenter({ index, goTo }: Options) {
         }
       }, 4000);
     },
-    [stopServerAudio, playBgm, advanceAfterVo, clearTimers],
+    [stopServerAudio, playBgm, advanceAfterVo, clearTimers, clearHighlightTimer],
   );
 
   const playServerUrl = useCallback(
@@ -571,6 +728,9 @@ export function usePitchPresenter({ index, goTo }: Options) {
 
       setSpeaking(true);
       playBgm();
+      const spoken = prepareSpokenScript(slides[slideIndex]?.script || "");
+      startServerHighlightSync(slideIndex, spoken);
+
       const play = audio.play();
       if (play && typeof play.catch === "function") {
         play.catch(() => {
@@ -606,6 +766,7 @@ export function usePitchPresenter({ index, goTo }: Options) {
       playBgm,
       prefetchSlide,
       clearTimers,
+      startServerHighlightSync,
     ],
   );
 
@@ -616,9 +777,27 @@ export function usePitchPresenter({ index, goTo }: Options) {
       const slide = slides[slideIndex];
       if (!slide) return;
 
+      // Opening dua: do not speak Arabic until fullscreen reveal.
+      if (slide.kind === "dua" && !isFullscreenRef.current) {
+        pendingDuaSpeakRef.current = modeRef.current === "auto";
+        runIdRef.current += 1;
+        clearTimers();
+        setPausedState(false);
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+        stopServerAudio();
+        setSpeaking(false);
+        return;
+      }
+      pendingDuaSpeakRef.current = false;
+
       const runId = ++runIdRef.current;
       clearTimers();
       setPausedState(false);
+      resetHighlight();
+      // Clear old is-narrating immediately; hold new cues until enter finishes.
+      armHighlightGate(fromUserGesture);
 
       if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
@@ -626,7 +805,13 @@ export function usePitchPresenter({ index, goTo }: Options) {
       stopServerAudio();
 
       const spokenScript = prepareSpokenScript(slide.script);
-      const delay = fromUserGesture ? 40 : 280;
+      // After fullscreen reveal, give the first ayah fade a beat before VO.
+      const delay =
+        slide.kind === "dua" && !fromUserGesture
+          ? 420
+          : fromUserGesture
+            ? 40
+            : 280;
 
       speakTimerRef.current = window.setTimeout(() => {
         if (runIdRef.current !== runId || modeRef.current !== "auto") return;
@@ -663,7 +848,7 @@ export function usePitchPresenter({ index, goTo }: Options) {
         engineRef.current = "server";
         setSpeaking(true);
 
-        fetchTtsAudio(spokenScript, abort.signal)
+        fetchTtsAudio(spokenScript, abort.signal, slide.voice)
           .then((blob) => {
             if (fetchAbortRef.current === abort) fetchAbortRef.current = null;
             if (runIdRef.current !== runId || modeRef.current !== "auto") return;
@@ -689,6 +874,8 @@ export function usePitchPresenter({ index, goTo }: Options) {
       takePrefetchedUrl,
       playServerUrl,
       speakWithBrowser,
+      resetHighlight,
+      armHighlightGate,
     ],
   );
 
@@ -758,6 +945,7 @@ export function usePitchPresenter({ index, goTo }: Options) {
     (nextMode: PresenterMode) => {
       if (nextMode === "manual") {
         autoContinueRef.current = false;
+        pendingDuaSpeakRef.current = false;
         modeRef.current = "manual";
         setMode("manual");
         stopSpeech();
@@ -777,6 +965,9 @@ export function usePitchPresenter({ index, goTo }: Options) {
   // Slide-to-slide autoplay: after VO ends (or nav in Auto), speak the new slide.
   useEffect(() => {
     if (modeRef.current !== "auto") return;
+
+    // Drop previous slide's highlight before enter / new cues.
+    setHighlightId(null);
 
     if (autoContinueRef.current) {
       autoContinueRef.current = false;
@@ -821,6 +1012,7 @@ export function usePitchPresenter({ index, goTo }: Options) {
     speaking,
     paused,
     supported,
+    highlightId,
     setPresenterMode,
     onSlideClick,
     stopSpeech,
